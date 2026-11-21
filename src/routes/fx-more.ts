@@ -8,6 +8,7 @@ import { entry, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { sourceJson, unreadableSource } from "../lib/source-json";
 import { exchangeRates } from "./rates";
+import { API_UA } from "../lib/outbound-ua";
 
 const SOURCE = "Source: ECB statistics (euro foreign exchange reference rates via Frankfurter), one rate per working day around 16:00 CET; reference mid rates, not tradable bid/ask quotes.";
 const MAJORS = ["USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "CNY"] as const;
@@ -16,7 +17,7 @@ const MAJORS = ["USD", "EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "CNY"] as const
 export async function fxSymbols() {
   let res: Response;
   try {
-    res = await fetch("https://api.frankfurter.dev/v1/currencies", { signal: AbortSignal.timeout(8_000), headers: { "user-agent": "AgentDataTools/1.0" } });
+    res = await fetch("https://api.frankfurter.dev/v1/currencies", { signal: AbortSignal.timeout(8_000), headers: { "user-agent": API_UA } });
   } catch {
     throw new HttpError(502, "the exchange rate data source did not respond");
   }

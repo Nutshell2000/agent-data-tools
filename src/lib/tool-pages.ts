@@ -1,6 +1,8 @@
 // One indexable page per tool at /tools/<slug>. The tool URLs themselves answer 402, which search engines do
 // not index, so before these pages Google saw only the homepage. Each page says what the tool does, its inputs,
 // a request and an example result, and the ways in (free calls, card credits, MCP, x402/MPP).
+import { freeEligible } from "./capacity";
+import { FREE_NOT_FOR, FREE_REST_PAID, FREE_TOOLS_KIND } from "./free-calls";
 import { ENDPOINTS, SERVICE_NAME, toolSlug, type Endpoint } from "../endpoints";
 import { TOOL_COUNT } from "../endpoints";
 import { categoryOf, exampleQuery } from "../discovery";
@@ -39,7 +41,7 @@ export function toolDocPage(e: Endpoint, origin: string, freeCalls: boolean, liv
   const seo = TOOL_SEO[e.path];
   const heading = seo?.title ?? e.summary;
   const title = seo ? `${seo.title}: ${e.price} per call, no signup · ${SERVICE_NAME}` : `${e.summary} API: ${e.price} per call, no signup · ${SERVICE_NAME}`;
-  const payAnswer = `Each successful call costs ${e.price}; failed calls are not charged. ${cappedTry ? `A browser can try it free on this page (at most 2 pages a read, ${FREE_HTTP_CALLS_PER_CALLER} tries); through an MCP client the first ${FREE_CALLS_PER_CALLER} calls are free. Then` : freeCalls ? `The first ${FREE_HTTP_CALLS_PER_CALLER} calls are free (${FREE_CALLS_PER_CALLER} through an MCP client). Then` : "This tool is not in the free calls;"} pay with card credits (from $1; the key goes in an Authorization header or, for clients that can only fetch a URL, as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`;
+  const payAnswer = `Each successful call costs ${e.price}; failed calls are not charged. ${cappedTry ? `A browser can try it free on this page (at most 2 pages a read, ${FREE_HTTP_CALLS_PER_CALLER} tries); through an MCP client the first ${FREE_CALLS_PER_CALLER} calls are free. Then` : freeCalls ? `The first ${FREE_HTTP_CALLS_PER_CALLER} calls are free (${FREE_CALLS_PER_CALLER} through an MCP client). Then` : freeEligible(e.path) ? `Over HTTP this tool is paid from the first call; through an MCP client the first ${FREE_CALLS_PER_CALLER} calls are free. Then` : `This tool is not in the free calls (they run ${FREE_TOOLS_KIND}); from the first call`} pay with card credits (from $1; the key goes in an Authorization header or, for clients that can only fetch a URL, as api_key= in the URL) or per call in USDC over x402 or MPP. No account is needed.`;
   const faq: [string, string][] = seo ? [...seo.faq, ["How do I pay?", payAnswer]] : [];
   const category = categoryOf(e.path);
   const related = ENDPOINTS.filter((o) => o.path !== e.path && categoryOf(o.path) === category).slice(0, 12);
@@ -105,7 +107,7 @@ ${freeCalls && !cappedTry ? `<p>Or one of your ${FREE_HTTP_CALLS_PER_CALLER} fre
 ${live ? `<p class="muted">The real answer to the request above, read ${esc(liveAt)} and refreshed every 15 minutes.</p>` : ""}
 <pre><code>${esc(shown)}</code></pre>
 <h2>From an AI agent (MCP)</h2>
-<p>Add the MCP server to Claude, Cursor or any MCP client. This tool is <code>${esc(mcpName)}</code>${CAPACITY_LIMITED.has(e.path) ? ". It is outside the free calls (each call costs us an outside service), so it is paid from the first call" : `, and the first ${FREE_CALLS_PER_CALLER} successful calls are free`}:</p>
+<p>Add the MCP server to Claude, Cursor or any MCP client. This tool is <code>${esc(mcpName)}</code>${!freeEligible(e.path) ? ". It is outside the free calls (each call costs us an outside service), so it is paid from the first call" : `, and the first ${FREE_CALLS_PER_CALLER} successful calls are free`}:</p>
 <pre><code>${esc(origin)}/mcp</code></pre>
 ${(e as Endpoint).details ? `<h2>Details and limits</h2>\n<p>${esc((e as Endpoint).details!)}</p>` : ""}
 ${faq.length ? `<h2>Questions</h2>${faq.map(([q, a]) => `<h3>${esc(q)}</h3><p>${esc(a)}</p>`).join("")}` : ""}
@@ -133,7 +135,7 @@ ul{padding-left:20px}li{margin:3px 0}a{color:var(--accent)}.muted{color:var(--mu
 </style></head><body><main>
 <p class="muted"><a href="/">${esc(SERVICE_NAME)}</a></p>
 <h1>${esc(title)}</h1>
-<p class="muted">Each tool is one GET request that returns JSON, or an MCP tool at <code>${esc(origin)}/mcp</code>. ${FREE_CALLS_PER_CALLER} free calls through MCP (${FREE_HTTP_CALLS_PER_CALLER} over HTTP), then pay per call by card credits, x402 or MPP.</p>
+<p class="muted">Each tool is one GET request that returns JSON, or an MCP tool at <code>${esc(origin)}/mcp</code>. ${FREE_CALLS_PER_CALLER} free calls through MCP (${FREE_HTTP_CALLS_PER_CALLER} over HTTP) on ${FREE_TOOLS_KIND}: ${FREE_NOT_FOR}. ${FREE_REST_PAID} After the free calls, pay per call by card credits, x402 or MPP.</p>
 ${groups.map((g) => `<h2>${esc(g.name)} (${g.tools.length})</h2><ul>${g.tools.map((e) => `<li><a href="/tools/${esc(toolSlug(e.path))}">${esc(e.summary)}</a> <span class="muted">· ${esc(e.price)}</span></li>`).join("")}</ul>`).join("\n")}
 </main></body></html>`;
 }

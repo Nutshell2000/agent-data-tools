@@ -1,5 +1,6 @@
 import { HttpError } from "../lib/env";
-import { sourceJson } from "../lib/source-json";
+import { sourceJson, textWithin } from "../lib/source-json";
+import { API_UA } from "../lib/outbound-ua";
 
 const DOH = "https://cloudflare-dns.com/dns-query";
 // Community-maintained list of throwaway mailbox providers (CC0).
@@ -20,9 +21,9 @@ let disposable: { loadedAt: number; domains: Set<string> } | undefined;
 async function disposableDomains(): Promise<Set<string> | null> {
   if (disposable && Date.now() - disposable.loadedAt < 86_400_000) return disposable.domains;
   try {
-    const res = await fetch(DISPOSABLE_LIST, { signal: AbortSignal.timeout(6_000), headers: { "user-agent": "AgentDataTools/1.0" } });
+    const res = await fetch(DISPOSABLE_LIST, { signal: AbortSignal.timeout(6_000), headers: { "user-agent": API_UA } });
     if (!res.ok) return disposable?.domains ?? null;
-    disposable = { loadedAt: Date.now(), domains: new Set((await res.text()).split("\n").map((l) => l.trim()).filter(Boolean)) };
+    disposable = { loadedAt: Date.now(), domains: new Set((await textWithin(res)).split("\n").map((l) => l.trim()).filter(Boolean)) };
     return disposable.domains;
   } catch {
     return disposable?.domains ?? null;

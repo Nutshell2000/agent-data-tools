@@ -364,7 +364,7 @@ export const CHAIN_MORE: Entry[] = [
     ["trending-tokens", "trending", "dex", "base", "memecoins", "uniswap", "aerodrome"], {
       blocks: { type: "integer", description: "How many recent Base blocks to count, 30 to 3000 (default 1500, about 5 minutes; Base makes a block every 0.2 s)", example: 1500 },
       limit: { type: "integer", description: "Most tokens to return, 1 to 25 (default 15)", example: 15 },
-      majors: { type: "string", description: "include to keep WETH, USDC, cbBTC and stables in the list (default: left out)", enum: ["exclude", "include"], example: "exclude" },
+      majors: { type: "string", description: "exclude (default) leaves WETH, USDC, cbBTC and stables out of the list; include keeps them", enum: ["exclude", "include"], example: "exclude" },
     },
     { chain: "Base", fromBlock: 37002850, toBlock: 37002999, minutes: 5, swapsCounted: 9120, poolsSeen: 980, count: 1, tokens: [
       { rank: 1, address: "0x2222222222222222222222222222222222222222", symbol: "NEW", name: "New Token", swaps: 412, pools: 2, shareOfSwaps: 0.045, topPool: { address: "0x1111111111111111111111111111111111111111", swaps: 380 }, symbolClash: false },

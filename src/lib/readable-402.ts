@@ -1,13 +1,14 @@
 // x402 v2 carries the challenge in the PAYMENT-REQUIRED header and leaves the body as {}.
 // Agents that fetch a tool with plain HTTP only see the body, so repeat the decoded
 // challenge there with a short hint. Official clients read the header first, so this is additive.
+import { FREE_TOOLS_KIND } from "./free-calls";
 import { decodePaymentRequiredHeader } from "@x402/core/http";
 import { FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { v1Body, type RequirementsV1 } from "./x402-v1";
 import { browserToolPage } from "./browser-402";
 import { exampleParams, type Endpoint } from "../endpoints";
 import { relatedList } from "./related";
-import { WEB_PACKS, callsAt, usdcPrepayLine } from "./credits";
+import { WEB_PACKS, WEB_PLANS, callsAt, usdcPrepayLine } from "./credits";
 import { keyPrice, keyPriceLine } from "./key-prices";
 
 /**
@@ -39,7 +40,7 @@ function freeTrialOffer(page: { endpoint: Endpoint; url: string }) {
   for (const control of ["x402", "sample"]) url.searchParams.delete(control);
   if (![...url.searchParams.keys()].length) for (const [k, p] of exampleParams(page.endpoint)) url.searchParams.set(k, String(p.example));
   url.searchParams.set("trial", "1");
-  return { what: `No key, no wallet: ${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller on this and most other tools. Failed calls do not count.`, url: url.href };
+  return { what: `No key, no wallet: ${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller on this tool and the other ${FREE_TOOLS_KIND}. Failed calls do not count.`, url: url.href };
 }
 
 /** The exact call the exhausted caller just made, but with trial/x402/sample removed and a key placeholder set —
@@ -92,7 +93,7 @@ export async function readable402(res: Response, origin: string, freeCalls = fal
   const retryWithKey = page ? retryUrlWithKey(page.url) : null;
   const cardStep = cardReady && starter
     ? `open ${starter.url} in a browser ($${starter.usdCents / 100} for ${starter.credits.toLocaleString("en-US")} credits); Stripe returns you to ${origin}/credits/claim?session_id=… where your key is shown (no e-mail needed), then `
-    : "get a key at " + origin + "/credits (from $1, or $3 a month) and then ";
+    : "get a key at " + origin + "/credits (from $1" + (WEB_PLANS.length ? `, or $${WEB_PLANS[0].usdCents / 100} a month` : "") + ") and then ";
   const mppStep = mppReady
     ? ` An agent with an MPP client and a Link agent wallet can get a key without a browser: GET ${origin}/credits/buy/1, pay the 402, then use the key it returns.`
     : "";

@@ -12,7 +12,7 @@
  * traffic. Tools that cost us money per run (AI, rendering, search) are never run for a page view.
  */
 import type { Env } from "./env";
-import { CAPACITY_LIMITED } from "./capacity";
+import { freeEligible } from "./capacity";
 import { ENDPOINTS, exampleParams, type Endpoint } from "../endpoints";
 import { TOOLS } from "../tools";
 
@@ -28,7 +28,7 @@ export const LIVE_EXACT: ReadonlySet<string> = new Set([
 /** Per-network gas and latest-block pages ("avax gas fee", "base block number"): every network we read. */
 const LIVE_PATTERN = /^\/[a-z0-9]+\/(gas|block)$/;
 
-export const isLivePage = (e: Pick<Endpoint, "path">) => (LIVE_EXACT.has(e.path) || LIVE_PATTERN.test(e.path)) && !CAPACITY_LIMITED.has(e.path);
+export const isLivePage = (e: Pick<Endpoint, "path">) => (LIVE_EXACT.has(e.path) || LIVE_PATTERN.test(e.path)) && freeEligible(e.path);
 export const LIVE_PAGE_PATHS = () => ENDPOINTS.filter(isLivePage).map((e) => e.path);
 
 export interface LiveAnswer { result: unknown; at: string }

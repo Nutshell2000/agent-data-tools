@@ -6,7 +6,7 @@
 // Register API (federalregister.gov, US government work, no key) and the ClinicalTrials.gov API v2 (NLM, no key).
 import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
-import { sourceJson } from "../lib/source-json";
+import { SOURCE_MAX_BYTES_LARGE, sourceJson, sourceShape, textWithin } from "../lib/source-json";
 import { govFetch, govJson, resolveCik } from "./gov-data";
 
 const tag = (xml: string, name: string) => xml.match(new RegExp(`<${name}[^>]*>([\\s\\S]*?)</${name}>`))?.[1]?.trim() ?? null;
@@ -29,7 +29,8 @@ type Submissions = { name: string; tickers?: string[]; filings: { recent: Record
 async function submissions(cik: string): Promise<Submissions> {
   const res = await govFetch(`https://data.sec.gov/submissions/CIK${cik}.json`, 600, "application/json");
   if (res.status === 404) throw new HttpError(404, `no SEC filer with CIK ${Number(cik)}`);
-  return sourceJson<Submissions>(res, "the SEC");
+  // 21 Nov 2026: an answer without the list of recent filings was our 500 in the three tools that read it.
+  return sourceShape(await sourceJson<Submissions>(res, "the SEC"), "the SEC", { "filings.recent.form": "array" });
 }
 const archive = (cik: string, accession: string) => `https://www.sec.gov/Archives/edgar/data/${Number(cik)}/${accession.replaceAll("-", "")}`;
 const company = (q: (n: string) => string | undefined) => {
@@ -80,7 +81,7 @@ async function filerCik(name: string): Promise<string> {
   if (!/^[A-Za-z0-9 .,&'\-]{2,80}$/.test(name)) throw new HttpError(400, "filer must be a fund manager's name such as Berkshire Hathaway (or pass cik)");
   const url = `https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&company=${encodeURIComponent(name)}&type=13F-HR&dateb=&owner=include&count=10&output=atom`;
   const res = await govFetch(url, 86_400, "application/atom+xml");
-  const xml = await res.text();
+  const xml = await textWithin(res);
   const cik = xml.match(/<cik>(\d+)<\/cik>/)?.[1] ?? xml.match(/CIK=(\d{4,10})/)?.[1];
   if (!cik) throw new HttpError(404, `no 13F filer named like "${name}"; pass its cik`);
   return cik.padStart(10, "0");
@@ -133,7 +134,7 @@ export const GOV_MORE: Entry[] = [
         try {
           const res = await govFetch(url, 86_400, "application/xml");
           if (!res.ok) return null;
-          return { filed: r.filingDate?.[i] ?? null, ...parseForm4(await res.text()), url };
+          return { filed: r.filingDate?.[i] ?? null, ...parseForm4(await textWithin(res)), url };
         } catch { return null; }
       }));
       const got = filings.filter((f): f is NonNullable<typeof f> => f !== null);
@@ -167,7 +168,7 @@ export const GOV_MORE: Entry[] = [
       const index = (await govJson(await govFetch(`${base}/index.json`, 86_400, "application/json"))) as { directory?: { item?: { name: string }[] } };
       const table = (index.directory?.item ?? []).map((x) => x.name).find((n) => /\.xml$/i.test(n) && !/primary_doc/i.test(n));
       if (!table) throw new HttpError(502, "the 13F filing has no information table the SEC returned; try again");
-      const parsed = parse13F(await (await govFetch(`${base}/${table}`, 86_400, "application/xml")).text());
+      const parsed = parse13F(await textWithin(await govFetch(`${base}/${table}`, 86_400, "application/xml"), SOURCE_MAX_BYTES_LARGE));
       return { filer: s.name, cik, form: r.form[i], filed: r.filingDate?.[i] ?? null, period: r.reportDate?.[i] || null, positions: parsed.positions, totalValueUsd: parsed.totalValueUsd, holdings: parsed.holdings.slice(0, limit), url: `${base}/`, source: "SEC EDGAR (public information)" };
     }),
 

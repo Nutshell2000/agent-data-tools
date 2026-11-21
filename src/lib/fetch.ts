@@ -2,6 +2,24 @@ import { HttpError } from "./env";
 import { retryDelayMs, sleep } from "./retry";
 import { peekBody } from "./read-capped";
 import { isOwnHost } from "./self-fetch";
+import { FETCH_UA } from "./outbound-ua";
+
+/**
+ * True for an IPv4 address that is not a public unicast address: this network, private, shared (carrier NAT),
+ * loopback, link-local, protocol assignments, the three documentation ranges, benchmarking, multicast and reserved.
+ */
+export function nonPublicIpv4([a, b, c]: number[]): boolean {
+  return a === 0 || a === 10 || a === 127 ||
+    (a === 100 && b >= 64 && b <= 127) ||
+    (a === 169 && b === 254) ||
+    (a === 172 && b >= 16 && b <= 31) ||
+    (a === 192 && b === 168) ||
+    (a === 192 && b === 0 && (c === 0 || c === 2)) ||
+    (a === 198 && (b === 18 || b === 19)) ||
+    (a === 198 && b === 51 && c === 100) ||
+    (a === 203 && b === 0 && c === 113) ||
+    a >= 224;
+}
 
 /** Rejects targets that are never legitimate for a public fetch service. */
 export function parseTarget(raw: string | undefined): URL {
@@ -16,6 +34,8 @@ export function parseTarget(raw: string | undefined): URL {
   if (url.username || url.password) throw new HttpError(400, "URLs with credentials are not supported");
   if (url.port) throw new HttpError(400, "only standard HTTP and HTTPS ports are supported");
   const host = url.hostname.toLowerCase().replace(/\.$/, "");
+  // The numeric rules apply to address literals only (the URL parser has already turned every numeric spelling of an
+  // IPv4 host, such as 127.1 or 0x7f000001, into four decimal parts): a public name such as 10.example.com is a name.
   const ipv4 = /^\d+\.\d+\.\d+\.\d+$/.test(host) ? host.split(".").map(Number) : null;
   const privateHost =
     host === "localhost" ||
@@ -23,12 +43,7 @@ export function parseTarget(raw: string | undefined): URL {
     host.endsWith(".local") ||
     host.endsWith(".internal") ||
     host.startsWith("[") ||
-    /^(0|10|127)\./.test(host) ||
-    /^169\.254\./.test(host) ||
-    /^192\.168\./.test(host) ||
-    /^172\.(1[6-9]|2\d|3[01])\./.test(host) ||
-    Boolean(ipv4 && ((ipv4[0] === 100 && ipv4[1] >= 64 && ipv4[1] <= 127) ||
-      (ipv4[0] === 198 && (ipv4[1] === 18 || ipv4[1] === 19)) || ipv4[0] >= 224)) ||
+    Boolean(ipv4 && nonPublicIpv4(ipv4)) ||
     !host.includes(".");
   if (privateHost) throw new HttpError(400, "private, loopback and IPv6-literal hosts are not supported");
   return url;
@@ -144,7 +159,7 @@ export async function fetchPublic(target: URL, accept: string, allowStatus: read
     try {
       res = await fetch(current, {
         redirect: "manual", signal,
-        headers: { "user-agent": "Mozilla/5.0 (compatible; AgentDataTools/1.0)", accept, "accept-language": "en" },
+        headers: { "user-agent": FETCH_UA, accept, "accept-language": "en" },
       });
     } catch (e) {
       const timedOut = signal.aborted || (e instanceof Error && e.name === "TimeoutError");

@@ -3,11 +3,33 @@
 // so ordinary unpaid requests still get the 402 challenge that directories and validators probe for.
 // Counted in the Metrics Durable Object instance "credits", so the limits are exact.
 
-export const FREE_CALLS_PER_CALLER = 25;
-export const FREE_CALLS_PER_DAY = 2000;
+//
+// 21 Nov 2026, the owner: a free user must cost nothing metered, "very minimal free calls", and everything free
+// together must never be able to cost more than $5 a month, by code. So a free call runs only a tool outside
+// FREE_EXCLUDED_METERED (lib/capacity.ts: nothing that can spend model money, browser rendering, paid search, resold
+// data or a Vectorize query), and the numbers went down: MCP 25 -> 10 per caller, the day's total 2,000 -> 500.
+// What is left costs requests only, and FREE_CALLS_PER_DAY bounds those: 500 a day is about 15,500 tool runs a month.
+// Every text that names a number or the kind of tool reads it from the constants below.
+
+/** Free successful calls per caller over MCP (anonymous per connection or address, signed in per account). */
+export const FREE_CALLS_PER_CALLER = 10;
+/** Free calls a UTC day for everybody together, HTTP and MCP: the hard ceiling of the free calls. */
+export const FREE_CALLS_PER_DAY = 500;
+/**
+ * Successful calls a free key (lib/free-keys.ts) makes each calendar month, on the same tools as the free calls. Free
+ * keys are switched off in production (each sign-up sends an e-mail); the number applies to keys issued from now on,
+ * and a key issued earlier keeps the allowance written into its record.
+ */
+export const FREE_KEY_CALLS_PER_MONTH = 25;
+/** The tools a free call runs, for every sentence that says so. */
+export const FREE_TOOLS_KIND = "tools that only compute or look up public data";
+/** What a free call never runs, for the same sentences. */
+export const FREE_NOT_FOR = "not AI, speech, transcription, images, rendering, search or resold data";
+/** The sentence that follows a statement of the free calls. */
+export const FREE_REST_PAID = "Everything else is prepaid or paid per call.";
 // 10 Nov 2026, the owner: "from 25 to 3 is good!" In 15 days 14,352 free calls over plain HTTP (11,047 of them /pdf/text from
 // browser-type callers on many addresses) and 24,304 "used up" answers produced no purchase at all. So HTTP trial=1 gives 3
-// calls per caller; MCP keeps 25, because app directories test the server without paying.
+// calls per caller; MCP kept 25 then, because app directories test the server without paying (10 since 21 Nov 2026).
 export const FREE_HTTP_CALLS_PER_CALLER = 3;
 // Not in the HTTP free calls at all (owner: "disable all free trials for the heavy user"): one caller group took 400-1,300
 // free PDF reads a day from many addresses and cannot be told apart, so the tool itself leaves the HTTP trial. It stays in
@@ -71,25 +93,43 @@ export async function refundDailyCall(storage: FreeCallStorage, callerHash: stri
     if (all > 0) await txn.put(DAILY_TOTAL_KEY, { day, used: all - 1 } satisfies DayCount);
   });
 }
-/** One caller per IPv4 address or per IPv6 /64 (a home or server usually holds a whole /64, so each address in it is the same caller). */
+/**
+ * One caller per IPv4 address or per IPv6 /64 (a home or server usually holds a whole /64, so each address in it is the same caller).
+ * Every textual form of one address gives the same bucket: "::" is expanded, leading zeros in a group are dropped
+ * (2001:0db8::1 is 2001:db8::1), brackets and a zone are ignored, and an IPv4 address written inside IPv6
+ * (::ffff:192.0.2.7 or ::ffff:c000:207) is that IPv4 address, not the all-zero /64 every such address shares.
+ * Text that is not an address is its own bucket, unchanged.
+ */
 export const addressBucket = (ip: string | undefined): string => {
   const raw = (ip ?? "").trim().toLowerCase();
   if (!raw) return "unknown";
   if (!raw.includes(":")) return raw;
-  // Expand "::" before slicing: raw.split(":").slice(0,4) is misaligned when the shorthand compresses zeros inside
-  // the first four groups (e.g. 2601:646:100::1 -> "2601:646:100:"). Canonicalize to eight hextets first so both
-  // textual forms of one /64 bucket together and a short address is not mistaken for a whole /32.
-  const [head = "", tail = ""] = raw.split("::");
-  const h = head ? head.split(":").filter(Boolean) : [];
-  const t = tail ? tail.split(":").filter(Boolean) : [];
-  const groups = [...h, ...Array(Math.max(0, 8 - h.length - t.length)).fill("0"), ...t];
-  return groups.slice(0, 4).join(":");
+  let text = raw.replace(/^\[|\]$/g, "").replace(/%.*$/, "");
+  // A dotted IPv4 tail is two groups.
+  const dotted = /^(.*:)(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(text);
+  if (dotted) {
+    const n = dotted.slice(2).map(Number);
+    if (n.some((x) => x > 255)) return raw;
+    text = `${dotted[1]}${((n[0] << 8) | n[1]).toString(16)}:${((n[2] << 8) | n[3]).toString(16)}`;
+  }
+  const halves = text.split("::");
+  if (halves.length > 2) return raw;
+  const part = (h: string) => (h ? h.split(":") : []);
+  const head = part(halves[0]), tail = halves.length === 2 ? part(halves[1]) : [];
+  const fill = halves.length === 2 ? 8 - head.length - tail.length : 0;
+  if (fill < 0 || (halves.length === 2 && fill === 0)) return raw;
+  const groups = [...head, ...Array<string>(fill).fill("0"), ...tail];
+  if (groups.length !== 8 || !groups.every((g) => /^[0-9a-f]{1,4}$/.test(g))) return raw;
+  const g = groups.map((x) => parseInt(x, 16));
+  if (g[0] === 0 && g[1] === 0 && g[2] === 0 && g[3] === 0 && g[4] === 0 && g[5] === 0xffff) return `${g[6] >> 8}.${g[6] & 255}.${g[7] >> 8}.${g[7] & 255}`;
+  return g.slice(0, 4).map((x) => x.toString(16)).join(":");
 };
 
 /**
  * The caller identity: a hash of the connecting address, so no raw address is stored. An IPv6 caller is its /64
  * (21 Nov 2026): counted per full address, one host could take a fresh allowance from each of its 2^64 addresses.
  * IPv4 callers hash exactly as before, so their counters carry on; an IPv6 caller's counters start again once.
+ * An IPv4 address written inside IPv6 (::ffff:a.b.c.d) is the same caller as that IPv4 address.
  */
 export async function callerHash(ip: string): Promise<string> {
   const bucket = ip.includes(":") && /^[0-9a-f:.]+$/i.test(ip.trim()) ? addressBucket(ip) : ip;
@@ -100,7 +140,7 @@ export async function callerHash(ip: string): Promise<string> {
 export const utcDay = () => new Date().toISOString().slice(0, 10);
 
 export function freeCallNote(left: number, origin: string) {
-  return `Free call (${left} of ${FREE_CALLS_PER_CALLER} free calls left for this caller). After that, pay per call with x402, or buy a prepaid key by card at ${origin}/credits and send it as "Authorization: Bearer <key>".`;
+  return `Free call (${left} of ${FREE_CALLS_PER_CALLER} free calls left for this caller; they run ${FREE_TOOLS_KIND}, ${FREE_NOT_FOR}). After that, pay per call with x402, or buy a prepaid key by card at ${origin}/credits and send it as "Authorization: Bearer <key>".`;
 }
 
 // Free MCP calls per connection (16 Nov 2026). Cloud assistants reach /mcp from a few shared addresses, so their users

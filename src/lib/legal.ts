@@ -1,5 +1,6 @@
 // Privacy policy, terms and support pages. Plain statements of what the service actually stores and does;
 // update them whenever logging, storage or payment handling changes.
+import { FREE_CALLS_PER_CALLER, FREE_NOT_FOR, FREE_REST_PAID, FREE_TOOLS_KIND } from "./free-calls";
 import { Hono } from "hono";
 import type { Env } from "./env";
 import { SUPPORT_EMAIL } from "../endpoints";
@@ -8,11 +9,16 @@ import { FREE_KEY_LINK_HOURS } from "./free-keys";
 import { FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { CHANGELOG } from "../data/changelog.generated";
 
-const UPDATED = "26 October 2026";
+const UPDATED = "21 November 2026";
 const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
 
+// Each legal page names its one address on the product host, so search engines index one copy (21 Nov 2026).
+const LEGAL_PATHS: Record<string, string> = { "Privacy policy": "/privacy", "Terms of service": "/terms", Support: "/support", Contact: "/contact", Refunds: "/refunds", "Frequently asked questions": "/faq", About: "/about", Changelog: "/changelog" };
+const LEGAL_DESCRIPTIONS: Record<string, string> = { "Privacy policy": "What Glyphcall stores, for how long and why: hashed addresses, payment receipts, no accounts.", "Terms of service": "The terms for Glyphcall tools, keys and credits: prepaid, delivered at once, failed calls cost nothing.", Refunds: "Glyphcall purchases are delivered at once and are final; a purchase that was not delivered is put right.", "Frequently asked questions": "Answers about Glyphcall: what is free, how to pay, keys, credits and plans." };
 function page(title: string, body: string) {
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · Agent Data Tools</title><link rel="icon" href="/favicon.svg" type="image/svg+xml"><style>body{font:16px/1.6 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:1.6rem}a{color:#1f7a4d}code{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}a{color:#6fd3a0}code{background:#262626}}</style></head><body>${body}<p><small>Last updated ${UPDATED}. <a href="/">Agent Data Tools</a> is a SpellzCode service · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/refunds">Refunds</a> · <a href="/faq">FAQ</a> · <a href="/contact">Contact</a> · <a href="/support">Support</a> · <a href="/status">Status</a> · <a href="/changelog">Changelog</a></small></p></body></html>`;
+  const path = Object.hasOwn(LEGAL_PATHS, title) ? LEGAL_PATHS[title] : "";
+  const description = Object.hasOwn(LEGAL_DESCRIPTIONS, title) ? LEGAL_DESCRIPTIONS[title] : `Glyphcall: ${title}.`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · Glyphcall</title><meta name="description" content="${esc(description)}">${path ? `<link rel="canonical" href="https://glyphcall.com${path}">` : ""}<link rel="icon" href="/favicon.svg" type="image/svg+xml"><style>body{font:16px/1.6 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}h1{font-size:1.6rem}h2{font-size:1.15rem;margin-top:1.6rem}a{color:#1f7a4d}code{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}a{color:#6fd3a0}code{background:#262626}}</style></head><body>${body}<p><small>Last updated ${UPDATED}. <a href="/">Agent Data Tools</a> is a SpellzCode service · <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> · <a href="/refunds">Refunds</a> · <a href="/faq">FAQ</a> · <a href="/contact">Contact</a> · <a href="/support">Support</a> · <a href="/status">Status</a> · <a href="/changelog">Changelog</a></small></p></body></html>`;
 }
 
 /** One line for the footers of the other public pages (tool pages, guides, the browser 402 page). */
@@ -33,7 +39,7 @@ export const PRIVACY_HTML = page("Privacy policy", `<h1>Privacy policy</h1>
 <li><strong>Agent memory.</strong> What you save with the memory tools (/memory/set), under a one-way hash of the namespace you choose, until it expires (at most 30 days) or you delete it with /memory/delete. Anyone who knows a namespace can read it.</li>
 <li><strong>Card credits.</strong> A one-way hash of your API key with its balance and purchase history, and the Stripe Checkout or payment reference that created it. The key itself is kept with that reference only so that reopening your claim link shows the same key. Card details are handled by Stripe and never reach us.</li>
 <li><strong>Free keys by e-mail.</strong> When you ask for a free key we send one message with a link to the address you give. We keep a one-way hash of that address, so one address gets one key, with the key's hash, its count of free calls this month, and the key itself so that reopening your link shows the same key. The address itself is not stored and is not used for anything else, with one exception that you choose: the form has a box, unticked unless you tick it, to be e-mailed about new tools and price changes (at most monthly). If you tick it and then open the link in the message, we store that address with the time you agreed, and use it only for those messages. If you do not tick it nothing is stored, and an address whose link is never opened is not kept: until the link is opened it exists only in a form that the link itself is needed to read, and that is deleted when the link expires after ${FREE_KEY_LINK_HOURS} hours. To be removed, write to ${mail} from that address and we delete it. A hash of your IP address and a count are kept for two days to limit sign-ups.</li>
-<li><strong>Free voice test keys and the free transcription trial.</strong> When you ask for a free voice test key (POST /keys/voice-test) or a free trial file (POST /credits/trial, the "Try Pro free" button on the voice pages), no e-mail address is asked for. We keep a one-way hash of your network address (for IPv6, of its /64 prefix) with a count for up to two days, so one address gets one test key and one free trial file a day, and a one-way hash of the key with its count of calls until the key expires. The address and the key themselves are not stored. Audio and text sent with such a key are handled as with any other key.</li>
+<li><strong>Free voice test keys and the free transcription trial.</strong> Neither is offered at present, so nothing is collected for them. While one is offered and you ask for it (POST /keys/voice-test, POST /credits/trial), no e-mail address is asked for. We keep a one-way hash of your network address (for IPv6, of its /64 prefix) with a count for up to two days, so one address gets one test key and one free trial file a day, and a one-way hash of the key with its count of calls until the key expires. The address and the key themselves are not stored. Audio and text sent with such a key are handled as with any other key.</li>
 <li><strong>Sign-in from apps (OAuth, for example ChatGPT).</strong> The app's registration (its name and redirect addresses) and one-way hashes of the access and refresh tokens issued to it, linked to your account. Tokens stop working when they expire.</li>
 </ul>
 <h2>Why we keep it</h2>
@@ -70,7 +76,7 @@ export const TERMS_HTML = page("Terms of service", `<h1>Terms of service</h1>
 <ul>
 <li>Each tool's price is shown in its listing and in its payment request. You pay only for successful calls; failed calls are not charged.</li>
 <li>Every caller gets a small number of free calls; we may change or end free calls.</li>
-<li>Card credits: 1 credit = $0.001. Credits do not expire. Unused credits can be refunded on request to ${mail}; used credits are not refundable.</li>${WEB_PLANS.length ? `
+<li>Card credits: 1 credit = $0.001. Credits do not expire. Your key and credits are delivered at once after payment. At checkout you ask for immediate delivery and give up the 14-day right of withdrawal, so a purchase is final. If you paid and did not receive a working key or the credits, write to ${mail} and we will deliver them or return the payment.</li>${WEB_PLANS.length ? `
 <li>Monthly plan: a card payment through Stripe that repeats every month until you cancel it. Each successful payment adds the plan's credits to your key; they are ordinary credits under the line above. You can cancel at any time at <a href="${esc(PLAN_PORTAL_URL)}">Stripe's customer page</a> (it asks for the e-mail you paid with); cancelling stops future payments and leaves the credits you already have. A payment that fails adds nothing.</li>` : ""}
 <li>Crypto payments are final once settled on chain, except where a call failed after payment, which you can report to ${mail}.</li>
 </ul>
@@ -103,7 +109,7 @@ export const CONTACT_HTML = page("Contact", `<h1>Contact</h1>
 <h2>When you write</h2>
 <ul>
 <li><strong>A paid call failed:</strong> include the <code>X-Request-ID</code> header (or the MCP result's <code>requestId</code>), the tool and the approximate time in UTC. Failed calls are not charged.</li>
-<li><strong>Card credits or a refund:</strong> include the e-mail used at checkout or the first 8 characters of your key. Never send a full key, a payment signature or a card detail. See <a href="/refunds">refunds</a>.</li>
+<li><strong>Card credits or a payment problem:</strong> include the e-mail used at checkout or the first 8 characters of your key. Never send a full key, a payment signature or a card detail. See <a href="/refunds">refunds</a>.</li>
 <li><strong>Security report:</strong> put "security" in the subject; see <a href="/.well-known/security.txt">security.txt</a> and <a href="/about#security">About</a>.</li>
 <li><strong>Bugs and feature requests:</strong> <a href="https://github.com/Nutshell2000/agent-data-tools/issues">GitHub issues</a> are welcome, but public — never post keys there.</li>
 </ul>
@@ -115,8 +121,9 @@ export const REFUNDS_HTML = page("Refunds", `<h1>Refunds and credits</h1>
 <h2>Card credits</h2>
 <ul>
 <li>1 credit = $0.001. Credits do not expire.</li>
-<li><strong>Unused credits</strong> can be refunded on request to ${mail}. Tell us the e-mail used at checkout or the first 8 characters of the key.</li>
-<li><strong>Used credits are not refundable</strong> — once a call has delivered its result, that credit is spent.</li>
+<li><strong>Purchases are final.</strong> Your key and credits are delivered at once after payment. At checkout you ask for immediate delivery and give up the 14-day right of withdrawal, so a purchase is final.</li>
+<li><strong>If something was not delivered</strong> (you paid and did not receive a working key or the credits), write to ${mail} with the e-mail used at checkout or the first 8 characters of the key. We will deliver it or return the payment.</li>
+<li><strong>A failed call costs nothing:</strong> credits are taken only for a call that delivered its result.</li>
 <li>A monthly plan can be cancelled any time at <a href="${esc(PLAN_PORTAL_URL)}">Stripe's customer page</a>; cancelling stops future payments and leaves credits you already have.</li>
 </ul>
 <h2>Crypto payments</h2>
@@ -128,13 +135,13 @@ export const FAQ_HTML = page("Frequently asked questions", `<h1>Frequently asked
 <h2>How do I pay?</h2>
 <p>Per call in USDC over x402 or MPP from a wallet, or with prepaid card credits from <a href="/credits">/credits</a>. A card key is sent as <code>Authorization: Bearer adt_…</code> or as <code>api_key=adt_…</code> in the URL.</p>
 <h2>Can I try it first?</h2>
-<p>Plain HTTP requests get ${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller with <code>trial=1</code>; an MCP client gets 25. Failed calls do not count and are never charged.</p>
+<p>Plain HTTP requests get ${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller with <code>trial=1</code>; an MCP client gets ${FREE_CALLS_PER_CALLER}. They run ${FREE_TOOLS_KIND}: ${FREE_NOT_FOR}. ${FREE_REST_PAID} Failed calls do not count and are never charged.</p>
 <h2>What does a call cost?</h2>
 <p>Every tool lists its price in its description, OpenAPI entry and payment request. Most are $0.01 or less. Card credits are 1 credit = $0.001, so $1 buys 1,000 credits. See <a href="/llms.txt">llms.txt</a> or <a href="/openapi.json">OpenAPI</a>.</p>
 <h2>What if a call fails?</h2>
 <p>You are not charged. Seven-day per-tool success rates are public at <a href="/status">/status</a>. Include the request ID when you <a href="/contact">contact us</a>.</p>
 <h2>Can I get a refund?</h2>
-<p>Unused card credits are refundable on request; used credits and settled crypto payments are final. Details on <a href="/refunds">Refunds</a>.</p>
+<p>Card purchases are delivered at once and are final: at checkout you ask for immediate delivery and give up the 14-day right of withdrawal. If you paid and did not receive a working key or the credits, write to us and we will deliver them or return the payment. Settled crypto payments are final. Details on <a href="/refunds">Refunds</a>.</p>
 <h2>Do you keep my data or card details?</h2>
 <p>Card details go straight to Stripe and never reach us. What we store, and how to ask for deletion, is in <a href="/privacy">Privacy</a>.</p>`);
 

@@ -8,6 +8,8 @@
  */
 import { entry, flag, need, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { API_UA } from "../lib/outbound-ua";
+import { SOURCE_MAX_BYTES_LARGE, jsonWithin } from "../lib/source-json";
 
 const POOLS = "https://yields.llama.fi/pools";
 const SOURCE = "DefiLlama yields (yields.llama.fi)";
@@ -25,7 +27,7 @@ async function pools(): Promise<Pool[]> {
   if (snapshot && Date.now() - snapshot.at < 600_000) return snapshot.pools;
   let res: Response;
   try {
-    res = await fetch(POOLS, { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(25_000) });
+    res = await fetch(POOLS, { headers: { accept: "application/json", "user-agent": API_UA }, signal: AbortSignal.timeout(25_000) });
   } catch {
     if (snapshot) return snapshot.pools;
     throw new HttpError(502, "DefiLlama did not answer in time; try again");
@@ -34,7 +36,7 @@ async function pools(): Promise<Pool[]> {
     if (snapshot) return snapshot.pools;
     throw new HttpError(502, `DefiLlama answered HTTP ${res.status}; try again`);
   }
-  const body = (await res.json().catch(() => null)) as { data?: Pool[] } | null;
+  const body = (await jsonWithin(res, SOURCE_MAX_BYTES_LARGE).catch(() => null)) as { data?: Pool[] } | null;
   if (!body?.data?.length) throw new HttpError(502, "DefiLlama sent an unreadable answer");
   snapshot = { at: Date.now(), pools: body.data };
   return body.data;
@@ -123,12 +125,12 @@ export const DEFI_YIELDS: Entry[] = [
       const days = num(q, "days", { min: 1, max: 365, fallback: 30, integer: true });
       let res: Response;
       try {
-        res = await fetch(`https://yields.llama.fi/chart/${id}`, { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(15_000) });
+        res = await fetch(`https://yields.llama.fi/chart/${id}`, { headers: { accept: "application/json", "user-agent": API_UA }, signal: AbortSignal.timeout(15_000) });
       } catch {
         throw new HttpError(502, "DefiLlama did not answer in time; try again");
       }
       if (!res.ok) throw new HttpError(502, `DefiLlama answered HTTP ${res.status}; try again`);
-      const body = (await res.json().catch(() => null)) as { data?: { timestamp: string; tvlUsd: number; apy: number | null; apyBase: number | null; apyReward: number | null }[] } | null;
+      const body = (await jsonWithin(res, SOURCE_MAX_BYTES_LARGE).catch(() => null)) as { data?: { timestamp: string; tvlUsd: number; apy: number | null; apyBase: number | null; apyReward: number | null }[] } | null;
       const all = body?.data ?? [];
       if (!all.length) throw new HttpError(404, `no history for pool ${id}; nothing was charged`);
       const rows = all.slice(-days).map((d) => ({ date: d.timestamp.slice(0, 10), apy: r2(d.apy), apyBase: r2(d.apyBase), apyReward: r2(d.apyReward), tvlUsd: Math.round(d.tvlUsd) }));

@@ -1,4 +1,4 @@
-import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY, FREE_HTTP_CALLS_PER_CALLER } from "./lib/free-calls";
+import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY, FREE_HTTP_CALLS_PER_CALLER, FREE_NOT_FOR, FREE_REST_PAID, FREE_TOOLS_KIND } from "./lib/free-calls";
 import { mcpName } from "./mcp-contract";
 import { listingName as bazaarName } from "./lib/bazaar-extension";
 import { readerBuyingCss, readerBuyingHtml, type ReaderDemo } from "./guides/reader-buying";
@@ -29,7 +29,7 @@ export const exampleQuery = (e: Endpoint) =>
 
 const trialNote = (enabled: boolean) =>
   enabled
-    ? `Free calls: every caller gets ${FREE_CALLS_PER_CALLER} free successful calls over MCP, used automatically before any payment, or ${FREE_HTTP_CALLS_PER_CALLER} over HTTP by adding trial=1 to a GET request (failed calls do not count). Not for the AI, rendering, screenshot, transcription and search tools, nor over HTTP for PDF reading, and at most ${FREE_CALLS_PER_DAY.toLocaleString("en-US")} free calls a day in total. When they run out, a card key from /credits continues the same URLs (api_key=adt_… in the URL for clients that cannot set headers). The operator can switch this off.`
+    ? `Free calls: every caller gets ${FREE_CALLS_PER_CALLER} free successful calls over MCP, used automatically before any payment, or ${FREE_HTTP_CALLS_PER_CALLER} over HTTP by adding trial=1 to a GET request (failed calls do not count). They run ${FREE_TOOLS_KIND}: ${FREE_NOT_FOR}, nor over HTTP PDF reading; at most ${FREE_CALLS_PER_DAY.toLocaleString("en-US")} free calls a day in total. ${FREE_REST_PAID} When they run out, a card key from /credits continues the same URLs (api_key=adt_… in the URL for clients that cannot set headers). The operator can switch this off.`
     : "Free trials are disabled. Requests with trial=1 receive the normal 402 payment challenge.";
 
 /** Every way a buyer can pay per call: the x402 networks (primary first) and the MPP methods (Tempo first). */
@@ -119,7 +119,7 @@ export function aiPluginManifest(origin: string) {
     name_for_human: SERVICE_NAME,
     name_for_model: "agent_data_tools",
     description_for_human: "Pay-per-call data tools for AI agents: payee and sanctions checks, prices, chain data, web reading.",
-    description_for_model: `${SERVICE_SUMMARY} Every unpaid call answers HTTP 402 with x402 and MPP payment terms; ${FREE_HTTP_CALLS_PER_CALLER} free calls per caller with trial=1 (${FREE_CALLS_PER_CALLER} over MCP). Pick a tool from ${origin}/llms.txt or ${origin}/discovery/resources.`,
+    description_for_model: `${SERVICE_SUMMARY} Every unpaid call answers HTTP 402 with x402 and MPP payment terms; ${FREE_HTTP_CALLS_PER_CALLER} free calls per caller with trial=1 (${FREE_CALLS_PER_CALLER} over MCP) on ${FREE_TOOLS_KIND}, ${FREE_NOT_FOR}. Pick a tool from ${origin}/llms.txt or ${origin}/discovery/resources.`,
     auth: { type: "none" },
     api: { type: "openapi", url: `${origin}/openapi.json` },
     logo_url: `${origin}/logo.png`,
@@ -485,7 +485,7 @@ input,select,button{font:inherit;padding:8px;max-width:100%}label{display:inline
 <p><strong>APIs for developers, by monthly plan or pay as you go:</strong> ${PRODUCTS.map((p) => `<a href="/${p.slug}">${esc(p.name)}</a>`).join(" · ")}</p>
 ${firstCallHtml(origin, trialsEnabled)}
 <section class="start" aria-label="Get started"><h2>Get started</h2><ol>
-<li><strong>Try it free from Claude, Cursor or any MCP client.</strong> Add <code>${esc(origin)}/mcp</code> as a remote MCP server. The first ${FREE_CALLS_PER_CALLER} successful calls are free, and failed calls never count.
+<li><strong>Try it free from Claude, Cursor or any MCP client.</strong> Add <code>${esc(origin)}/mcp</code> as a remote MCP server. The first ${FREE_CALLS_PER_CALLER} successful calls on ${FREE_TOOLS_KIND} are free (${FREE_NOT_FOR}), and failed calls never count.
 <div class="install"><a href="${esc(install.cursor)}">Add to Cursor</a><a href="${esc(install.vscode)}">Install in VS Code</a><a href="${esc(install.vscodeInsiders)}">VS Code Insiders</a></div>
 Claude Code: <code>${esc(install.claudeCode)}</code>. Any of these, or Claude Desktop, from a terminal: <code>${esc(install.npx)}</code> (it prints or writes the configuration for the client you name). To pay per call from your own wallet with no account, start <code>npx -y agent-data-tools mcp</code> with <code>AGENT_DATA_TOOLS_WALLET_KEY</code> set (USDC on Base, $0.10 a call and $1 a day at most by default); for the Vercel AI SDK, <code>agent-data-tools/ai-sdk</code>: <a href="/guides/ai-sdk">AI SDK and wallet guide</a>. These connect the compact server, <code>${esc(install.url)}</code>: three tools that find, describe and run any tool in the catalog at the same prices, so your assistant's context stays small. Claude.ai and ChatGPT: add a custom connector with <code>${esc(install.claudeAi)}</code>. For every tool as its own definition, connect <code>${esc(install.full)}</code>, or one section, such as <code>${esc(origin)}/mcp/web</code> or <code>/mcp/chain</code>.</li>
 <li><strong>Pay by card, no wallet.</strong> <a href="/credits">Buy credits from $1</a> (1,000 credits; most tools cost 10, simple ones 2). The key works over HTTP (<code>Authorization: Bearer adt_…</code>, or <code>api_key=adt_…</code> in the URL for clients that can only fetch a URL) and MCP.</li>
@@ -681,7 +681,7 @@ import { firstCall } from "./lib/first-call";
 /** The agent catalogue page opens with a request that needs no key, and its published answer (lib/first-call.ts). */
 function firstCallHtml(origin: string, trials: boolean): string {
   const call = trials ? firstCall(origin) : null;
-  return call ? `<section class="start" aria-label="First call"><h2>First call: no key, no wallet</h2><pre><code>${esc(call.curl)}</code></pre><pre><code>${esc(call.output)}</code></pre><p>Add <code>trial=1</code> to a GET request: ${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller over HTTP on most tools (${FREE_CALLS_PER_CALLER} over MCP). Failed calls do not count.</p></section>` : "";
+  return call ? `<section class="start" aria-label="First call"><h2>First call: no key, no wallet</h2><pre><code>${esc(call.curl)}</code></pre><pre><code>${esc(call.output)}</code></pre><p>Add <code>trial=1</code> to a GET request: ${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller over HTTP (${FREE_CALLS_PER_CALLER} over MCP) on ${FREE_TOOLS_KIND}: ${FREE_NOT_FOR}. Failed calls do not count.</p></section>` : "";
 }
 export { CAPACITY_LIMITED };
 

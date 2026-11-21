@@ -57,6 +57,33 @@ export function logTransport(url: string): { timeout: number; retryCount: number
 }
 
 /**
+ * The longest one failed eth_getLogs can take on a chain: every node of LOG_RPCS holds each try until its time limit
+ * (a node that hangs, not one that refuses), tries follow the transport's retry waits (viem doubles `retryDelay` each
+ * time: 50, 100, 200 ms), and the fallback transport goes through the whole list before it gives up.
+ *
+ * 21 Nov 2026, the arithmetic, so that nobody has to redo it: Base, Optimism and Polygon have one publicnode entry
+ * (4 tries of 1.5 s + 0.35 s of waits = 6.35 s) and three 4 s nodes: 18.35 s. Ethereum and Arbitrum have one publicnode
+ * entry and four 4 s nodes: 22.35 s. The scan's budget is 20 s (routes/chain-reads.ts LOG_SCAN_BUDGET_MS) and its
+ * shrink-and-retry starts only while the budget has not run out, so when every node hangs:
+ *   - on Ethereum and Arbitrum the smaller window is never tried: the caller gets the 502 after 22.35 s;
+ *   - on Base, Optimism and Polygon it is tried once (18.35 s is inside the budget), fails the same way, and the caller
+ *     gets the 502 after 36.7 s.
+ * The retry therefore helps only against nodes that refuse a wide range quickly, which is what it was written for
+ * (16 Nov 2026). Whether the public nodes hang or refuse can only be measured from Cloudflare, so no time limit is
+ * changed here; this function and tests/handler-shapes-2.test.cjs keep the numbers honest if the lists or
+ * `logTransport` change.
+ */
+export function logCallWorstMs(slug: keyof typeof LOG_RPCS): number {
+  let total = 0;
+  for (const url of LOG_RPCS[slug]) {
+    const t = logTransport(url);
+    total += t.timeout * (t.retryCount + 1);
+    for (let i = 0; i < t.retryCount; i++) total += (1 << i) * t.retryDelay;
+  }
+  return total;
+}
+
+/**
  * The RPC list for a chain. BASE_RPC_URL goes first only when it is a private endpoint (not one of the public ones
  * above), so a stale public default in configuration cannot push a rate-limited node to the front.
  */

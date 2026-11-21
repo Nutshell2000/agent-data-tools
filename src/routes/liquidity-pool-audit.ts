@@ -2,6 +2,7 @@ import { dexscreener } from "../lib/dexscreener";
 import { HttpError, isAddress, type Env } from "../lib/env";
 import { erc20Abi, getAddress, parseAbi } from "viem";
 import { CHAINS, client, rpc } from "./chain-reads";
+import { jsonWithin } from "../lib/source-json";
 
 type JsonObject = Record<string, unknown>;
 
@@ -97,7 +98,7 @@ export async function liquidityPoolAudit(_env: Env, address: string): Promise<Li
 
   let body: unknown;
   try {
-    body = await response.json();
+    body = await jsonWithin(response);
   } catch {
     throw new HttpError(502, "DexScreener returned invalid market data");
   }

@@ -1,5 +1,7 @@
 import { decode } from "light-bolt11-decoder";
 import { HttpError } from "../lib/env";
+import { API_UA } from "../lib/outbound-ua";
+import { jsonWithin, sourceShape } from "../lib/source-json";
 
 const API = "https://mempool.space/api";
 // A public mempool.space instance with the same /api schema, for transient outages of the primary host.
@@ -13,7 +15,7 @@ async function mempool<T>(path: string): Promise<T> {
   let res: Response | undefined;
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      res = await fetch(API + path, { signal: AbortSignal.timeout(4_000), headers: { "user-agent": "AgentDataTools/1.0" } });
+      res = await fetch(API + path, { signal: AbortSignal.timeout(4_000), headers: { "user-agent": API_UA } });
     } catch {
       res = undefined;
     }
@@ -24,13 +26,13 @@ async function mempool<T>(path: string): Promise<T> {
   // short-circuited above, so a genuine "not found" never reaches a different host. The reported source stays API.
   if (!res || res.status === 429 || res.status >= 500) {
     await res?.body?.cancel().catch(() => {});
-    try { res = await fetch(API_FALLBACK + path, { signal: AbortSignal.timeout(4_000), headers: { "user-agent": "AgentDataTools/1.0" } }); }
+    try { res = await fetch(API_FALLBACK + path, { signal: AbortSignal.timeout(4_000), headers: { "user-agent": API_UA } }); }
     catch { res = undefined; }
   }
   if (!res) throw new HttpError(502, "the Bitcoin data source did not respond");
   if (res.status === 400 || res.status === 404) throw new HttpError(404, "not found on the Bitcoin network");
   if (!res.ok) throw new HttpError(502, `the Bitcoin data source returned HTTP ${res.status}`);
-  try { return await res.json() as T; }
+  try { return await jsonWithin<T>(res); }
   catch { throw new HttpError(502, "the Bitcoin data source returned invalid JSON", "SOURCE_INVALID"); }
 }
 
@@ -86,6 +88,11 @@ export async function bitcoinAddress(input: string) {
   const address = /^BC1[0-9A-Z]+$/.test(trimmed) ? trimmed.toLowerCase() : trimmed;
   if (!ADDRESS.test(address)) throw new HttpError(400, "address must be a Bitcoin mainnet address (1..., 3... or bc1...)");
   const a = await mempool<{ chain_stats: Stats; mempool_stats: Stats }>(`/address/${address}`);
+  // 21 Nov 2026: an answer without the two totals was our 500; it is the source's failure (lib/source-json.ts).
+  const sums = { funded_txo_sum: "number", spent_txo_sum: "number", tx_count: "number" } as const;
+  sourceShape(a, "the Bitcoin data source", { chain_stats: "object", mempool_stats: "object" });
+  sourceShape(a.chain_stats, "the Bitcoin data source", sums);
+  sourceShape(a.mempool_stats, "the Bitcoin data source", sums);
   const confirmed = a.chain_stats.funded_txo_sum - a.chain_stats.spent_txo_sum;
   const pending = a.mempool_stats.funded_txo_sum - a.mempool_stats.spent_txo_sum;
   return {

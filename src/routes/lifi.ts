@@ -8,6 +8,8 @@
 import { entry, need, num, opt, type Entry, type Input } from "../family";
 import { HttpError } from "../lib/env";
 import { TICKERS } from "../lib/tickers";
+import { API_UA } from "../lib/outbound-ua";
+import { jsonWithin } from "../lib/source-json";
 
 const API = "https://li.quest/v1";
 const SOURCE = "LI.FI (li.quest)";
@@ -39,7 +41,7 @@ async function lifi<T>(path: string, params: Record<string, string>): Promise<{ 
   // once after the wait it asks for, up to 2 s.
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      res = await fetch(`${API}${path}?${new URLSearchParams(params)}`, { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0", ...(lifiKey ? { "x-lifi-api-key": lifiKey } : {}) }, signal: AbortSignal.timeout(20_000) });
+      res = await fetch(`${API}${path}?${new URLSearchParams(params)}`, { headers: { accept: "application/json", "user-agent": API_UA, ...(lifiKey ? { "x-lifi-api-key": lifiKey } : {}) }, signal: AbortSignal.timeout(20_000) });
     } catch {
       throw new HttpError(502, "LI.FI did not answer in time; try again");
     }
@@ -50,7 +52,7 @@ async function lifi<T>(path: string, params: Record<string, string>): Promise<{ 
   }
   if (!res) throw new HttpError(502, "LI.FI did not answer; try again");
   if (res.status === 429 || res.status >= 500) throw new HttpError(502, `LI.FI answered HTTP ${res.status}; try again`);
-  return { status: res.status, body: (await res.json().catch(() => null)) as T | null };
+  return { status: res.status, body: (await jsonWithin(res).catch(() => null)) as T | null };
 }
 
 interface Token { address: string; symbol: string; decimals: number; priceUSD?: string; name?: string; chainId: number }
@@ -191,7 +193,7 @@ export async function kyberQuote(chain: string, from: Token, to: Token, amount: 
   try {
     const res = await fetcher(`https://aggregator-api.kyberswap.com/${slug}/api/v1/routes?${new URLSearchParams({ tokenIn: evm(from.address), tokenOut: evm(to.address), amountIn: amount })}`, { headers: { accept: "application/json", "x-client-id": "agentdatatools" }, signal: AbortSignal.timeout(10_000) });
     if (!res.ok) { console.warn(`kyberswap ${slug}: HTTP ${res.status}`); return null; }
-    body = await res.json();
+    body = await jsonWithin(res);
   } catch (e) {
     console.warn(`kyberswap ${slug}: ${e instanceof Error ? e.message : String(e)}`);
     return null;
@@ -222,7 +224,7 @@ export async function paraswapQuote(chain: string, from: Token, to: Token, amoun
     const params = new URLSearchParams({ srcToken: evm(from.address), destToken: evm(to.address), amount, srcDecimals: String(from.decimals), destDecimals: String(to.decimals), side: "SELL", network: chain });
     const res = await fetcher(`https://api.paraswap.io/prices?${params}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
     if (!res.ok) { console.warn(`paraswap ${chain}: HTTP ${res.status}`); return null; }
-    body = await res.json();
+    body = await jsonWithin(res);
   } catch (e) {
     console.warn(`paraswap ${chain}: ${e instanceof Error ? e.message : String(e)}`);
     return null;
@@ -250,7 +252,7 @@ export async function acrossQuote(fromChain: string, toChain: string, from: Toke
   try {
     const res = await fetcher(`https://app.across.to/api/suggested-fees?${new URLSearchParams({ inputToken: from.address === NATIVE ? "" : from.address, outputToken: to.address === NATIVE ? "" : to.address, originChainId: fromChain, destinationChainId: toChain, amount })}`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(10_000) });
     if (!res.ok) return null;
-    b = await res.json();
+    b = await jsonWithin(res);
   } catch {
     return null;
   }

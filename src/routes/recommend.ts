@@ -224,7 +224,7 @@ export function lexicalScore(query: string[], d: Doc, written = "") {
 }
 
 async function catalog(): Promise<{ docs: Doc[]; example: (path: string) => [string, { example?: unknown; required?: boolean; description: string }][]; free: (path: string) => boolean }> {
-  const [{ ENDPOINTS, exampleParams }, { listingName, listingTags }, { CAPACITY_LIMITED }, { ENTRY_OF }] = await Promise.all([import("../endpoints"), import("../lib/bazaar-extension"), import("../lib/capacity"), import("./entry-paths")]);
+  const [{ ENDPOINTS, exampleParams }, { listingName, listingTags }, { freeEligible }, { ENTRY_OF }] = await Promise.all([import("../endpoints"), import("../lib/bazaar-extension"), import("../lib/capacity"), import("./entry-paths")]);
   const byPath = new Map(ENDPOINTS.map((e) => [e.path, e]));
   // Entry paths (7 Nov 2026) are doors for outside search engines; our own recommender names the canonical tool only.
   const canonical = (e: { path: string }) => !Object.hasOwn(ENTRY_OF, e.path);
@@ -234,7 +234,7 @@ async function catalog(): Promise<{ docs: Doc[]; example: (path: string) => [str
   return {
     docs: ENDPOINTS.filter((e) => e.path !== "/recommend" && canonical(e)).map((e) => ({ path: e.path, name: listingName(e.summary), tags: listingTags(e.tags, e.path), summary: e.summary, description: e.description, price: e.price, also: (also.get(e.path) ?? []).join(" , ") })),
     example: (path) => exampleParams(byPath.get(path as never)!) as never,
-    free: (path) => !CAPACITY_LIMITED.has(path),
+    free: (path) => freeEligible(path),
   };
 }
 

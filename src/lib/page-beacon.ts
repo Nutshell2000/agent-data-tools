@@ -38,7 +38,7 @@ export const BEACON_TAG = `<script ${BEACON_MARK}>${SCRIPT}</script>`;
  * and consent pages (nothing but the form belongs there), and anything that is not a page for people.
  */
 export function beaconWanted(path: string): boolean {
-  if (/^\/p\//.test(path) || /^\/oauth(\/|$)/.test(path) || /^\/mcp(\/|$)/.test(path) || /^\/credits\/claim/.test(path) || /^\/keys\/free\/confirm/.test(path)) return false;
+  if (/^\/p\//.test(path) || /^\/oauth(\/|$)/.test(path) || /^\/mcp(\/|$)/.test(path)) return false;
   return true;
 }
 

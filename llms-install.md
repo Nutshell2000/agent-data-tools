@@ -1,7 +1,7 @@
 # Installing Agent Data Tools as an MCP server (for AI coding agents)
 
 Agent Data Tools is a hosted MCP server. There is nothing to clone or build and no API key is required to start: every
-caller gets 25 free successful calls.
+caller gets 10 free successful calls on tools that only compute or look up public data (not AI, speech, transcription, images, rendering, search or resold data; those are paid from the first call).
 
 ## Preferred: remote server (streamable HTTP)
 

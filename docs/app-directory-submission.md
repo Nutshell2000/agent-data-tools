@@ -21,7 +21,7 @@ Update docs/listings.md when submitted. Facts only: no usage, customer or uptime
 - Description: Agent Data Tools gives your assistant read access to live public data: token prices and wallet
   values from on-chain pools, OFAC sanctions screening and a one-call counterparty check, blockchain reads on
   Base, Ethereum, Arbitrum, Optimism and Polygon, company and domain lookups, and clean text from web pages,
-  JavaScript apps, PDFs and RSS feeds. Every signed-in person gets 25 free calls; after that, prepaid credits
+  JavaScript apps, PDFs and RSS feeds. Every signed-in person gets 10 free calls on the tools that only compute or look up public data; AI tools and every later call use prepaid credits
   bought on our website pay per call (most calls $0.003). Failed calls are never charged. Nothing is bought,
   sent or changed on the user's behalf: the tools only read data.
 - Category: Data / Research (secondary: Finance)
@@ -29,7 +29,7 @@ Update docs/listings.md when submitted. Facts only: no usage, customer or uptime
 ## How payment works (for the reviewer's policy questions)
 
 - No purchase happens inside the assistant. Credits are bought on our own website (`/credits`, Stripe), and
-  the user signs in with the resulting key. Directory users can use 25 free calls without paying.
+  the user signs in with the resulting key. Directory users can use 10 free calls without paying (not on AI, speech, image, rendering or search tools).
 - Tools never move funds, sign transactions or place orders. They read public data and return JSON.
 - Each successful call spends credits from the signed-in user's own prepaid balance; failed calls refund
   automatically. Tools are annotated readOnlyHint=true (they read or compute and change nothing in the
@@ -48,7 +48,7 @@ help, not an instruction.
 ## Reviewer test instructions
 
 1. Add the connector with the URL above and sign in with "Continue with free calls".
-2. Try the example prompts below. Each uses one or two of the 25 free calls.
+2. Try the example prompts below. Each uses one or two of the 10 free calls.
 3. AI, rendering, screenshot, transcription and search tools are excluded from free calls and answer with a
    clear message. To test those, use the reviewer key provided in the submission form (The owner: buy a $5
    pack, paste the key into the form's private notes, and record it as an owner purchase, not revenue).

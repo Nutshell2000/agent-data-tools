@@ -8,14 +8,14 @@ import { build } from "esbuild";
 const root = new URL("../", import.meta.url);
 const server = JSON.parse(await readFile(new URL("server.json", root), "utf8"));
 const bundled = await build({
-  stdin: { contents: 'export { CAPACITY_LIMITED, ENDPOINTS, FOCUSED_SERVERS, focusedServerTools, MCP_BUNDLES, mcpBundleTools, mcpListed, TOOL_COUNT } from "./src/discovery"; export { EXTRA_CHAIN_PATHS } from "./src/routes/chain-reads";', resolveDir: root.pathname.replace(/^\/([A-Za-z]:)/, "$1"), sourcefile: "registry-entry.ts" },
+  stdin: { contents: 'export { FREE_EXCLUDED_METERED } from "./src/lib/capacity"; export { FREE_CALLS_PER_CALLER } from "./src/lib/free-calls"; export { ENDPOINTS, FOCUSED_SERVERS, focusedServerTools, MCP_BUNDLES, mcpBundleTools, mcpListed, TOOL_COUNT } from "./src/discovery"; export { EXTRA_CHAIN_PATHS } from "./src/routes/chain-reads";', resolveDir: root.pathname.replace(/^\/([A-Za-z]:)/, "$1"), sourcefile: "registry-entry.ts" },
   bundle: true, platform: "node", format: "esm", write: false, logLevel: "silent",
   plugins: [{ name: "stub-workers", setup(b) {
     b.onResolve({ filter: /^(cloudflare:workers|@cloudflare\/puppeteer)$/ }, (a) => ({ path: a.path, namespace: "stub" }));
     b.onLoad({ filter: /.*/, namespace: "stub" }, () => ({ contents: "export class DurableObject {}; export default {};", loader: "js" }));
   } }],
 });
-const { CAPACITY_LIMITED, ENDPOINTS, EXTRA_CHAIN_PATHS, FOCUSED_SERVERS, focusedServerTools, MCP_BUNDLES, mcpBundleTools, mcpListed, TOOL_COUNT } = await import("data:text/javascript;base64," + Buffer.from(bundled.outputFiles[0].text).toString("base64"));
+const { FREE_EXCLUDED_METERED, FREE_CALLS_PER_CALLER, ENDPOINTS, EXTRA_CHAIN_PATHS, FOCUSED_SERVERS, focusedServerTools, MCP_BUNDLES, mcpBundleTools, mcpListed, TOOL_COUNT } = await import("data:text/javascript;base64," + Buffer.from(bundled.outputFiles[0].text).toString("base64"));
 
 // What each section does, in the registry's 100-character description budget.
 const WHAT = {
@@ -33,8 +33,9 @@ for (const [slug, title] of Object.entries(MCP_BUNDLES)) {
   // What the section's tools/list shows: entry paths (second names) run by name and are not listed (16 Nov 2026).
   const tools = mcpListed(mcpBundleTools(slug));
   const count = tools.length;
-  // Free calls do not cover capacity-limited tools, so only sections with free tools say so.
-  const free = tools.some((e) => !CAPACITY_LIMITED.has(e.path)) ? "25 free calls." : "From $0.002.";
+  // Free calls run only tools outside FREE_EXCLUDED_METERED (no AI, speech, images, rendering, search), so only
+  // sections with such tools say so; the number is the one in src/lib/free-calls.ts.
+  const free = tools.some((e) => !FREE_EXCLUDED_METERED.has(e.path)) ? `${FREE_CALLS_PER_CALLER} free calls.` : "From $0.002.";
   const description = `${count} tools: ${WHAT[slug] ?? title.toLowerCase()}. ${free}`;
   if (description.length > 100) throw new Error(`${slug}: description is ${description.length} characters (max 100)`);
   const manifest = {
@@ -63,9 +64,9 @@ const extra = [
     return { slug, title: f.title, description: counted.length <= 100 ? counted : `${f.registry}.` };
   }),
   // TOOL_COUNT is the one tool count (src/endpoints.ts); tests/tool-count.test.cjs holds these manifests to it.
-  { slug: "compact", title: "Compact (find, describe, run)", description: `3 tools that find, describe and run ${TOOL_COUNT} data tools: prices, chain, web, PDF. 25 free calls.` },
+  { slug: "compact", title: "Compact (find, describe, run)", description: `3 tools that find, describe and run ${TOOL_COUNT} data tools: prices, chain, web, PDF. ${FREE_CALLS_PER_CALLER} free calls.` },
   // 16 Nov 2026: /mcp (server.json) lists a small surface; the list with every tool as its own definition is /mcp/all.
-  { slug: "all", title: "Full list (every tool as its own definition)", description: `${mcpListed(ENDPOINTS.filter((e) => !EXTRA_CHAIN_PATHS.has(e.path))).length} tools, each its own definition: prices, chain, web, PDF, AI. 25 free calls.` },
+  { slug: "all", title: "Full list (every tool as its own definition)", description: `${mcpListed(ENDPOINTS.filter((e) => !EXTRA_CHAIN_PATHS.has(e.path))).length} tools, each its own definition: prices, chain, web, PDF, AI. ${FREE_CALLS_PER_CALLER} free calls.` },
 ];
 for (const { slug, title, description } of extra) {
   if (description.length > 100) throw new Error(`${slug}: description is ${description.length} characters (max 100)`);

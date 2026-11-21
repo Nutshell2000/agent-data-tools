@@ -10,10 +10,12 @@
  */
 import { entry, need, num, opt, pick, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { API_UA } from "../lib/outbound-ua";
+import { textWithin } from "../lib/source-json";
 
 type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 const API = "https://export.arxiv.org/api/query";
-const UA = { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)", accept: "application/atom+xml" };
+const UA = { "user-agent": API_UA, accept: "application/atom+xml" };
 export const ARXIV_SOURCE = "arXiv API (metadata CC0)";
 export const ARXIV_ATTRIBUTION = "Thank you to arXiv for use of its open access interoperability.";
 
@@ -100,7 +102,7 @@ export async function arxivRead(params: Record<string, string>, fetcher: Fetcher
   if (res.status === 429 || res.status === 503) throw new HttpError(503, "arXiv is busy; not charged, try again in a minute", "ARXIV_BUSY");
   // A malformed id_list is a 400 whose body is an Atom error entry: parseArxiv turns it into our own 400.
   if (!res.ok && res.status !== 400) throw new HttpError(502, `arXiv answered HTTP ${res.status}; not charged, try again`);
-  return res.text();
+  return textWithin(res);
 }
 
 const SORTS = ["relevance", "newest", "updated"] as const;

@@ -70,7 +70,7 @@ export const TOOLBOXES2: Entry[] = [
       length: { type: "integer", description: "Length of the random strings, 8-128 (default 24)", example: 24 },
       decode: { type: "string", description: "Optional ULID or UUID to read the timestamp from", example: "01JB8ZQ3N4X6Q2W8E5R7T9Y1VZ" },
     },
-    { uuidV4: ["0f8f3c4e-1a2b-4c3d-9e8f-1a2b3c4d5e6f"], uuidV7: ["01929d3c-4b5a-7c6d-8e9f-0a1b2c3d4e5f"], ulid: ["01JB8ZQ3N4X6Q2W8E5R7T9Y1VZ"], nanoid: ["V1StGXR8_Z5jdHi6B-myT"], base62: ["4fRz8Q2mXc1LpK9vT3aWbN7e"], hex: ["9f86d081884c7d659a2feaa0"], decoded: { input: "01JB8ZQ3N4X6Q2W8E5R7T9Y1VZ", kind: "ulid", timestamp: "2024-10-25T09:30:00.000Z", ms: 1729848600000 } },
+    { uuidV4: ["0f8f3c4e-1a2b-4c3d-9e8f-1a2b3c4d5e6f"], uuidV7: ["01929d3c-4b5a-7c6d-8e9f-0a1b2c3d4e5f"], ulid: ["01JB8ZQ3N4X6Q2W8E5R7T9Y1VZ"], nanoid: ["V1StGXR8_Z5jdHi6B-myT"], base62: ["4fRz8Q2mXc1LpK9vT3aWbN7e"], hex: ["9f86d081884c7d659a2feaa0"], decoded: { input: "01JB8ZQ3N4X6Q2W8E5R7T9Y1VZ", kind: "ulid", timestamp: "2024-10-28T07:16:17.188Z", ms: 1730099777188 } },
     (_e, q) => {
       const count = num(q, "count", { min: 1, max: 20, fallback: 3, integer: true });
       const len = num(q, "length", { min: 8, max: 128, fallback: 24, integer: true });

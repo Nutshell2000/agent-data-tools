@@ -32,7 +32,9 @@ test('nothing is added to answers that are not pages for people', async () => {
   await same(new Response('{"a":1}', { headers: { 'content-type': 'application/json' } }), '/weather');
   await same(new Response('<html><body>x</body></html>', { status: 404, headers: { 'content-type': 'text/html' } }), '/nope');
   await same(new Response('<html><body>x</body></html>', { status: 402, headers: { 'content-type': 'text/html' } }), '/weather');
-  for (const path of ['/p/abc123', '/oauth/authorize', '/mcp/account', '/credits/claim', '/keys/free/confirm']) await same(page('x'), path);
+  for (const path of ['/p/abc123', '/oauth/authorize', '/mcp/account']) await same(page('x'), path);
+  // The page a buyer returns to after paying is counted (a page view of /credits/claim is a purchase return); only its path is sent.
+  for (const path of ['/credits/claim', '/keys/free/confirm']) assert.match(await (await beaconed(page('x'), path)).text(), new RegExp(BEACON_MARK));
   await same(new Response('<p>fragment without a body end</p>', { headers: { 'content-type': 'text/html' } }), '/x');
   await same(new Response('<html><body>x</body></html>', { headers: { 'content-type': 'text/html', 'content-encoding': 'gzip' } }), '/x');
   const big = new Response('<html><body>x</body></html>', { headers: { 'content-type': 'text/html', 'content-length': '9000000' } });

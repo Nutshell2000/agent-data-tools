@@ -2,6 +2,7 @@
 // generic "Payment Required" page meant for developers; this page instead says what the tool does, shows its
 // example result, and offers the ways in: a free trial call, the free static sample, card credits and MCP.
 // The status stays 402 and the payment headers are untouched, so machine clients see no difference.
+import { freeEligible } from "./capacity";
 import { exampleParams, type Endpoint } from "../endpoints";
 import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER } from "./free-calls";
 import { WEB_PACKS } from "./credits";
@@ -63,7 +64,7 @@ ${freeCalls ? tryForm(endpoint, url.searchParams) : ""}
 <h2>Example result</h2>
 <pre><code>${esc(shown)}</code></pre>
 <h2>Use it from an AI agent</h2>
-<p>Add this MCP server to Claude, Cursor or any MCP client. The tool is <code>${esc(mcpName)}</code>, and the first ${FREE_CALLS_PER_CALLER} successful calls are free:</p>
+<p>Add this MCP server to Claude, Cursor or any MCP client. The tool is <code>${esc(mcpName)}</code>${freeEligible(endpoint.path) ? `, and the first ${FREE_CALLS_PER_CALLER} successful calls are free` : ", paid from the first call"}:</p>
 <pre><code>${esc(origin)}/mcp</code></pre>
 <p>Agents with a wallet pay per call over HTTP: x402 (USDC on Base, Polygon, Arbitrum or Solana) or MPP (Tempo). A card key from <a href="/credits">/credits</a> works over both HTTP (<code>Authorization: Bearer adt_…</code>, or <code>api_key=adt_…</code> in the URL for clients that can only fetch a URL) and MCP. An agent with an MPP client can buy a credit pack without a checkout page: <a href="/credits/buy/1">GET /credits/buy/1</a> answers 402 with payment terms and returns a key on settlement.</p>
 <footer><a href="/">All tools</a> · <a href="/llms.txt">Docs for agents</a> · ${COMPANY_FOOTER}</footer>

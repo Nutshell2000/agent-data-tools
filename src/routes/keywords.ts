@@ -12,6 +12,7 @@ import { entry, flag, need, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { languageCode } from "../lib/melo";
 import { addsForeignPlace, seedNamesPlace } from "../lib/place-names";
+import { jsonWithin } from "../lib/source-json";
 
 const UA = { "user-agent": "Mozilla/5.0 (compatible; AgentDataTools/1.0)" };
 type Engine = "google" | "bing" | "youtube" | "amazon" | "duckduckgo";
@@ -21,7 +22,7 @@ async function getText(url: string, ms = 5_000): Promise<unknown | null> {
   try {
     const r = await fetch(url, { headers: UA, signal: AbortSignal.timeout(ms) });
     if (!r.ok) return null;
-    return await r.json();
+    return await jsonWithin(r);
   } catch { return null; }
 }
 const opensearch = (v: unknown): string[] => (Array.isArray(v) && Array.isArray(v[1]) ? (v[1] as unknown[]).map(String) : []);

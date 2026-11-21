@@ -6,6 +6,8 @@
  */
 import { entry, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { API_UA } from "../lib/outbound-ua";
+import { jsonWithin } from "../lib/source-json";
 
 interface OrModel { id: string; name?: string; context_length?: number; created?: number; pricing?: { prompt?: string; completion?: string; image?: string; request?: string }; architecture?: { input_modalities?: string[]; output_modalities?: string[] }; top_provider?: { max_completion_tokens?: number | null } }
 let snapshot: { at: number; models: OrModel[] } | undefined;
@@ -14,12 +16,12 @@ async function models(): Promise<OrModel[]> {
   if (snapshot && Date.now() - snapshot.at < 600_000) return snapshot.models;
   let res: Response;
   try {
-    res = await fetch("https://openrouter.ai/api/v1/models", { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(10_000) });
+    res = await fetch("https://openrouter.ai/api/v1/models", { headers: { accept: "application/json", "user-agent": API_UA }, signal: AbortSignal.timeout(10_000) });
   } catch {
     throw new HttpError(502, "the model list did not answer in time; try again");
   }
   if (!res.ok) throw new HttpError(502, `the model list answered HTTP ${res.status}; try again`);
-  const body = (await res.json().catch(() => null)) as { data?: OrModel[] } | null;
+  const body = (await jsonWithin(res).catch(() => null)) as { data?: OrModel[] } | null;
   if (!body?.data?.length) throw new HttpError(502, "the model list sent an unreadable answer");
   snapshot = { at: Date.now(), models: body.data };
   return body.data;

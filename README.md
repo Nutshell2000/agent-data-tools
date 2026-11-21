@@ -8,7 +8,7 @@
 
 ## APIs for developers, by monthly plan
 
-One API key, from $9 a month or pay as you go, paid by card. Each page has the request in curl, Python and Node.js and a free try:
+One API key, from $3 a month or pay as you go, paid by card. Each page has the request in curl, Python and Node.js and a free try:
 
 - **[Company check API](https://tools.funwords.eu/company-check-api)**: EU VAT number validation (VIES), the Swedish, Norwegian, Finnish and French company registers, OFAC sanctions screening and LEI lookup. [VAT number formats and a live check for every EU country](https://tools.funwords.eu/vat-number-check).
 - **[PDF to text API](https://tools.funwords.eu/pdf-to-text-api)**: text page by page as JSON, from a URL.
@@ -17,7 +17,7 @@ One API key, from $9 a month or pay as you go, paid by card. Each page has the r
 ## Quick start
 
 1. **Connect** any MCP client to `https://agent-data-tools.revmesh2074.workers.dev/mcp/compact` (Streamable HTTP, no sign-up): three tools that find, describe and run any tool in the catalog, so your assistant's context stays small. The buttons above connect it too. Claude Code: `claude mcp add --transport http agent-data-tools https://agent-data-tools.revmesh2074.workers.dev/mcp/compact`. Every tool as its own definition: `https://agent-data-tools.revmesh2074.workers.dev/mcp/all`. From a terminal, for Claude Code, Claude Desktop, Cursor or VS Code: `npx -y agent-data-tools setup`. Claude.ai and ChatGPT: add a custom connector with `https://agent-data-tools.revmesh2074.workers.dev/mcp/account`. Or connect one section: `/mcp/prices`, `/mcp/chain`, `/mcp/web`, `/mcp/compliance`, `/mcp/ai`, `/mcp/everyday`, `/mcp/utilities`.
-2. **Try free:** every caller gets **25 free successful calls** over MCP, used automatically, or **3** over HTTP with `trial=1` (PDF reading is not free over HTTP). Failed calls never count. AI, rendering and search tools are not included.
+2. **Try free:** every caller gets **10 free successful calls** over MCP, used automatically, or **3** over HTTP with `trial=1` (PDF reading is not free over HTTP), on tools that only compute or look up public data: not AI, speech, transcription, images, rendering, search or resold data. Failed calls never count. Everything else is prepaid or paid per call.
 3. **Then pay either way:**
    - **Card:** buy prepaid credits at [/credits](https://agent-data-tools.revmesh2074.workers.dev/credits) ($5 = 5,000 credits, $20 = 22,000, $100 = 125,000; 1 credit = $0.001) and send the key as `Authorization: Bearer adt_…` (or `X-API-Key`) on HTTP calls or in your MCP client's connection headers.
    - **Crypto:** any x402 client pays per call in USDC on Base, Polygon, Arbitrum or Solana; MPP clients pay on Tempo or Base.
@@ -26,7 +26,7 @@ Failed calls are never charged. Free previews of every tool's output: add `sampl
 
 ## Details and buyer clients
 
-Operated by **SpellzCode**. [Check a Base transaction or wallet through a capped, account-free client](docs/chain-checks.md): one transaction-status result costs **$0.003**, a wallet snapshot **$0.005**. Inspect a free quote before an explicitly authorized purchase. Optional gas and allowance checks cost **$0.002 each**; the client never buys them automatically. Uses an existing funded Base x402 wallet and never sends the transaction being checked.
+Operated by **SpellzCode**. [Check a Base transaction or wallet through a capped, account-free client](docs/chain-checks.md): one transaction-status result costs **$0.003**, a wallet snapshot **$0.01**. Inspect a free quote before an explicitly authorized purchase. Optional gas and allowance checks cost **$0.002 each**; the client never buys them automatically. Uses an existing funded Base x402 wallet and never sends the transaction being checked.
 
 For [static documentation reading](docs/web-reading.md), get clean text, Markdown, code and tables for **$0.002 USDC on Base**. No account or subscription. Static HTML, Markdown and plain text only; no JavaScript rendering, authenticated pages or paywall access.
 
@@ -88,7 +88,7 @@ A Cloudflare Worker that sells 673 tools to AI agents. Each call is paid in USDC
 | `GET /weather?lat=&lon=` | Current weather and hourly forecast | $0.002 |
 | `GET /time?zone=` | Current time and time zone conversion | $0.01 |
 
-Free calls are on: 25 successful calls per caller over MCP, 3 over HTTP (not `/pdf/text`), and 2,000 a day in total (`src/lib/free-calls.ts`), automatic over MCP and with `trial=1` over HTTP. Without `trial=1`, an unpaid HTTP request gets the normal 402 challenge. The table above lists a few core tools; the full, current catalog is at [/#tools](https://agent-data-tools.revmesh2074.workers.dev/#tools) and in `/openapi.json`.
+Free calls are on: 10 successful calls per caller over MCP, 3 over HTTP (not `/pdf/text`), and 500 a day in total (`src/lib/free-calls.ts`), automatic over MCP and with `trial=1` over HTTP, and only on tools that only compute or look up public data (`FREE_EXCLUDED_METERED` in `src/lib/capacity.ts` lists what no free path runs: AI, speech, transcription, images, rendering, search or resold data). Without `trial=1`, an unpaid HTTP request gets the normal 402 challenge. The table above lists a few core tools; the full, current catalog is at [/#tools](https://agent-data-tools.revmesh2074.workers.dev/#tools) and in `/openapi.json`.
 
 The homepage and `llms.txt` include a copy-pastable Node.js/TypeScript x402 client using `@x402/fetch`, `@x402/evm` and viem. It reads the private key from `X402_PRIVATE_KEY` (never hard-code or commit it), pins Base, the service's published `PAY_TO` recipient and Base USDC, and caps each payment at $0.01, the ordinary per-call price, so it can pay for every tool priced at $0.01 or less. It does not add `trial=1`. `/package-audit` remains $0.20 per call and is intentionally refused by this lower-spend example. The OpenAPI `x-guidance` carries the same client, price and trial notes. Tool-specific guides (`/guides/web-reading`, `/guides/bitcoin-fees`, `/guides/dependency-audit`) pin that one tool's exact price instead.
 
@@ -116,7 +116,7 @@ New digital-product sales are paused at `/store` and `/buy/*` (HTTP 503, no paym
 
 ## MCP
 
-All 673 catalog tools are reachable from the MCP server at `/mcp` (streamable HTTP, stateless). It lists a small surface, `find_tool`, `describe_tool`, `call_tool` and a dozen of the most used tools, and `tools/call` runs every tool by name, so a client that learned the names earlier keeps working. Every tool as its own definition is at `/mcp/all`, smaller section servers are at `/mcp/<section>`, and `/mcp/compact` lists only three tools (`find_tool`, `tool_details`, `call_tool`: the whole catalog without hundreds of tool definitions in the assistant's context; same prices, same free calls). Listing tools is free. Every MCP caller gets 25 free successful calls; after that a call uses card credits (an API key from `/credits` in the connection headers) or returns an x402 payment requirement that an MCP client with x402 support pays and retries. Signed-in connectors at `/mcp/account` never see crypto payment requests. A tool call that fails is not charged.
+All 673 catalog tools are reachable from the MCP server at `/mcp` (streamable HTTP, stateless). It lists a small surface, `find_tool`, `describe_tool`, `call_tool` and a dozen of the most used tools, and `tools/call` runs every tool by name, so a client that learned the names earlier keeps working. Every tool as its own definition is at `/mcp/all`, smaller section servers are at `/mcp/<section>`, and `/mcp/compact` lists only three tools (`find_tool`, `tool_details`, `call_tool`: the whole catalog without hundreds of tool definitions in the assistant's context; same prices, same free calls). Listing tools is free. Every MCP caller gets 10 free successful calls on tools that only compute or look up public data (not AI, speech, transcription, images, rendering, search or resold data); every other call uses card credits (an API key from `/credits` in the connection headers) or returns an x402 payment requirement that an MCP client with x402 support pays and retries. Signed-in connectors at `/mcp/account` never see crypto payment requests. A tool call that fails is not charged.
 
 Each tool is defined once in `src/endpoints.ts` (name, price, parameters) and implemented once in `src/tools.ts`; the HTTP route, MCP tool, OpenAPI document and web page are generated from that catalog.
 

@@ -86,7 +86,7 @@ test('"Try it with your own inputs": a GET form with the example prefilled on th
   const own = await (await mf.dispatchFetch('https://api.test/sanctions/check?address=0x1234567890abcdef1234567890abcdef12345678', { headers: browser })).text();
   assert.match(own, /name="address" type="text" value="0x1234567890abcdef1234567890abcdef12345678"/);
   // Capacity-limited tools are outside the free calls: no form.
-  assert.doesNotMatch(await (await mf.dispatchFetch('https://api.test/tools/image')).text(), /<form class="try"/); // AI media stays outside the free calls; AI text joined them 25 Oct 2026
+  assert.doesNotMatch(await (await mf.dispatchFetch('https://api.test/tools/image')).text(), /<form class="try"/); // no AI tool is in the free calls (21 Nov 2026)
 });
 
 test('a browser trial result offers another run; refused inputs come back as a page with the reason and the form', async () => {
@@ -168,11 +168,16 @@ test('search copy: every TOOL_SEO entry is a real tool page with a short title, 
     assert.match(html, /<h2>When to use it<\/h2>/, path);
     assert.match(html, /How do I pay\?/, path);
   }
-  // AI media pages must not promise free calls (outside the allowance); AI text pages do (since 25 Oct 2026).
-  const image = await (await mf.dispatchFetch('https://api.test/tools/image')).text();
-  assert.match(image, /This tool is not in the free calls/);
-  const chat = await (await mf.dispatchFetch('https://api.test/tools/ai-chat')).text();
-  assert.match(chat, /The first 3 calls are free \(25 through an MCP client\)/);
+  // No AI page promises free calls (21 Nov 2026: a free user costs nothing metered), on the page or in its MCP
+  // paragraph; a tool that only computes does, with the numbers of lib/free-calls.ts.
+  for (const slug of ['image', 'ai-chat']) {
+    const page = await (await mf.dispatchFetch(`https://api.test/tools/${slug}`)).text();
+    assert.match(page, /This tool is not in the free calls \(they run tools that only compute or look up public data\)/, slug);
+    assert.match(page, /<\/code>, paid from the first call:/, slug);
+    assert.doesNotMatch(page, /successful calls are free|calls are free \(/, slug);
+  }
+  const hash = await (await mf.dispatchFetch('https://api.test/tools/hash')).text();
+  assert.match(hash, /the first 10 successful calls are free/);
 });
 
 test('a POST with a flat JSON body is the GET with those fields: quoted, not refused with 405', async () => {

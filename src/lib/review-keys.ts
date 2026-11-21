@@ -7,7 +7,9 @@
  * A review key never touches the credit ledger: nothing is "purchased", so /revenue's card-credit figures, the funnel's
  * credits stages and the payment counters stay customer-only. It runs a capped number of successful calls per UTC day
  * (`REVIEW_CALLS_PER_DAY`, counted in the Metrics object with the ChatGPT daily-call records; failed calls are given back)
- * and only tools at or below `REVIEW_MAX_PRICE`, so a leaked key costs at most a few cents of upstream use a day.
+ * and only tools at or below `REVIEW_MAX_PRICE` that the free calls also run (never a tool in FREE_EXCLUDED_METERED,
+ * lib/capacity.ts: no AI, speech, transcription, images, rendering, search or resold data), so a leaked key costs
+ * requests only.
  * Remove a hash from the secret to end a key.
  */
 import type { Env } from "./env";
@@ -33,4 +35,4 @@ export const reviewCaller = (keyHash: string) => `review:${keyHash}`;
 /** True when a review key may run a tool at this price. */
 export const reviewAllows = (price: string) => priceMicros(price) <= priceMicros(REVIEW_MAX_PRICE);
 
-export const REVIEW_NOTE = `Review key: up to ${REVIEW_CALLS_PER_DAY} successful calls a day on tools priced up to ${REVIEW_MAX_PRICE}, for marketplace review and demos. Customers buy their own key at /credits.`;
+export const REVIEW_NOTE = `Review key: up to ${REVIEW_CALLS_PER_DAY} successful calls a day on tools priced up to ${REVIEW_MAX_PRICE} that compute or read public data (not AI, speech, transcription, images, rendering or search), for marketplace review and demos. Customers buy their own key at /credits.`;

@@ -2,6 +2,7 @@ import { dexscreener } from "../lib/dexscreener";
 import { HttpError, type Env } from "../lib/env";
 import { tokenInfo } from "./token";
 import { TICKERS } from "../lib/tickers";
+import { sourceJson } from "../lib/source-json";
 
 /** Base tokens other tokens are quoted in: stablecoins, wrapped ether and wrapped bitcoin from the shared ticker table. */
 const QUOTE_ASSETS = new Set(["WETH", "USDC", "USDBC", "DAI", "EURC", "USDT", "CBBTC"].map((t) => TICKERS.base[t].toLowerCase()));
@@ -27,7 +28,8 @@ interface Pair {
 async function pairs(address: string): Promise<{ pairs: Pair[]; retrievedAt: string }> {
   const res = await dexscreener(`/latest/dex/tokens/${address}`);
   if (!res.ok) throw new HttpError(502, "market data source unavailable");
-  const body = (await res.json()) as { pairs?: Pair[] | null };
+  // 21 Nov 2026: read through the shared helper: a body that is not JSON, or is null, is a 502, not our 500.
+  const body = await sourceJson<{ pairs?: Pair[] | null }>(res, "the market data source");
   return {
     pairs: (body.pairs ?? []).filter((p) => p.chainId === "base" && p.baseToken.address.toLowerCase() === address.toLowerCase()),
     retrievedAt: new Date().toISOString(),

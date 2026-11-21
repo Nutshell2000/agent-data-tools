@@ -7,8 +7,9 @@
 //
 // Why no Authorization header in mcp.json: Hermes refuses to start a remote server whose header still holds an unset
 // ${VAR} (tools/mcp_tool_config.py, read 11 Nov 2026), so a header would make a key mandatory before the first call.
-// Without it the server answers with the 25 free calls, and a user who buys a key adds a same-name entry with the
+// Without it the server answers with the free calls (lib/free-calls.ts), and a user who buys a key adds a same-name entry with the
 // header to their own config.yaml: Hermes lets that entry replace the package's and keeps the costs declared here.
+import { FREE_CALLS_PER_CALLER, FREE_TOOLS_KIND } from "./free-calls";
 import { COMPACT_CAPPED_BUNDLE, COMPACT_PRICE_CEILING } from "../mcp-contract";
 import { LOCAL_KEY_PRICE } from "./key-prices";
 
@@ -53,7 +54,7 @@ export function hermesPluginFiles(): Record<string, unknown> {
       $schema: "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
       name: HERMES_PLUGIN_NAME,
       version: HERMES_PLUGIN_VERSION,
-      description: "Live data and AI tools for your agent through three MCP tools: find the tool for a job, read its inputs and price, call it. Web search, web page and PDF text, screenshots, weather, FX, stock and token prices, wallet and chain reads, sanctions and company checks, LLM chat, speech and more, from Agent Data Tools' hosted server. 25 free calls with no key or sign-up; after that a prepaid key from $1 pays per successful call.",
+      description: "Live data and AI tools for your agent through three MCP tools: find the tool for a job, read its inputs and price, call it. Web search, web page and PDF text, screenshots, weather, FX, stock and token prices, wallet and chain reads, sanctions and company checks, LLM chat, speech and more, from Agent Data Tools' hosted server. ${FREE_CALLS_PER_CALLER} free calls with no key or sign-up on ${FREE_TOOLS_KIND}; AI, speech, images, rendering and search, and every later call, need a prepaid key from $1 that pays per successful call.",
       author: { name: "SpellzCode", url: HERMES_ORIGIN },
       homepage: `${HERMES_ORIGIN}/tools`,
       repository: "https://github.com/Nutshell2000/agent-data-tools",

@@ -69,8 +69,13 @@ test('the later networks take token=USDC, as their listings say, and name USDC w
       }
       assert.equal((await tool(`/${slug}/token-balance`)({}, q({ token: 'USDC', address: WALLET }))).balance, '2.5');
       assert.equal((await tool(`/${slug}/allowance`)({}, q({ token: 'USDC', owner: WALLET, spender: PERMIT2 }))).unlimited, false);
-      await assert.rejects(tool(`/${slug}/token-info`)({}, q({ token: 'USDT' })), (e) => e.status === 400 && /"USDT"/.test(e.message) && /USDC is the only ticker/.test(e.message) && /0x address/.test(e.message));
+      // These networks have a ticker table since quality round two (lib/tickers.ts): an unknown ticker is refused with the tickers the network knows.
+      await assert.rejects(tool(`/${slug}/token-info`)({}, q({ token: 'ZZZQ' })), (e) => e.status === 400 && /"ZZZQ"/.test(e.message) && /USDC/.test(e.message) && /0x address/.test(e.message));
     });
+  }
+  // zkSync Era and HyperEVM have no table: USDC is the only ticker there and the refusal says so.
+  for (const slug of ['zksync', 'hyperevm']) {
+    await assert.rejects(tool(`/${slug}/token-info`)({}, q({ token: 'USDT' })), (e) => e.status === 400 && /"USDT"/.test(e.message) && /USDC is the only ticker/.test(e.message) && /0x address/.test(e.message));
   }
   // The five first networks keep their own ticker table and its list of tickers in the refusal.
   await assert.rejects(tool('/eth/token-info')({}, q({ token: 'zzz' })), (e) => e.status === 400 && /\(ETH, /.test(e.message));

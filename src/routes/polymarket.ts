@@ -10,6 +10,7 @@
  */
 import { entry, getJson, num, opt, flag, type Entry, type Input } from "../family";
 import { HttpError } from "../lib/env";
+import { sourceShape, unreadableSource } from "../lib/source-json";
 
 const GAMMA = "https://gamma-api.polymarket.com";
 const CLOB = "https://clob.polymarket.com";
@@ -151,6 +152,9 @@ export async function polymarketOrderbook(q: Input) {
   const depth = num(q, "depth", { min: 1, max: 50, fallback: 10, integer: true });
   const { tokenId, market, outcome } = await resolveToken(q);
   const book = await clobBook(tokenId);
+  // 21 Nov 2026: an answer with neither side of the book was sold as an empty book, and a side that is not a list was our 500.
+  sourceShape(book, "Polymarket's order book service");
+  if ((book.bids === undefined && book.asks === undefined) || (book.bids !== undefined && !Array.isArray(book.bids)) || (book.asks !== undefined && !Array.isArray(book.asks))) throw unreadableSource("Polymarket's order book service");
   const lv = (x: { price: string; size: string }) => ({ price: Number(x.price), size: Number(x.size) });
   const bids = (book.bids ?? []).map(lv).sort((a, b) => b.price - a.price);
   const asks = (book.asks ?? []).map(lv).sort((a, b) => a.price - b.price);

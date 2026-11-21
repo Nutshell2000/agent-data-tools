@@ -45,8 +45,8 @@ What you get, exactly:
   formats are charged $0.01 and the difference is given back when the model reports 30 seconds or less. The
   `X-Credits-Charged` header states what was charged. Failed calls are not charged.
 - **Price per call without a key (x402 or MPP, USDC):** $0.01 per file up to 5 MB, $0.05 for a longer MP3 or WAV.
-- **Free test key:** `POST https://glyphcall.com/keys/voice-test` gives 25 calls (MP3 or WAV up to 30 seconds, speech
-  up to 100 characters) when the offer is on; if it answers 404 the offer is off and a $1 key is the way in.
+- **No free test key:** every transcription runs a paid model, so the way in is a prepaid key from $1 at
+  `https://glyphcall.com/credits` (no account), or one call paid on its own with x402.
 - **Errors** come in OpenAI's shape, `{"error": {"message", "type", "code"}}`, and the message is a sentence.
 
 What we do **not** support: `/v1/audio/translations`, speaker labels (diarization) on this route, `prompt`,

@@ -1,9 +1,8 @@
-// Glyphcall Transcribe Pro (the owner, 15 Nov 2026: "Yes, build it"; plan business/voice-plan-2026-11-14/elevenlabs-scale-plan-2026-11-15.md,
-// stage 1). A $9 monthly plan for people who transcribe: the existing credits plan under a voice name (lib/credits.ts
-// VOICE_PRO_URL), so billing, renewals and cancelling are the plan's. This file holds what is voice-specific: the landing page
+// Glyphcall Transcribe Pro: a monthly plan for people who transcribe. It is the entry credits plan under a voice name
+// (lib/credits.ts VOICE_PRO_URL, VOICE_PRO_CENTS, VOICE_PRO_CREDITS), so billing, renewals and cancelling are the plan's. This file holds what is voice-specific: the landing page
 // at /transcribe-pro and the "how to use your key for transcription" part of /credits/claim when the checkout came from Voice Pro.
 // Hours are always computed from the live price of /transcribe/long, never written by hand.
-import { PLAN_PORTAL_URL, VOICE_HOURS_PACK_CREDITS, VOICE_HOURS_PACK_URL, VOICE_PRO_CENTS, VOICE_PRO_CREDITS, VOICE_PRO_URL, VOICE_TOOLS_URL, WEB_PLANS } from "./credits";
+import { PLAN_PORTAL_URL, VOICE_BUNDLE_PLAN, VOICE_HOURS_PACK_CREDITS, VOICE_HOURS_PACK_URL, VOICE_PRO_CENTS, VOICE_PRO_CREDITS, VOICE_PRO_URL, VOICE_STUDIO_PLAN, VOICE_TOOLS_URL, WEB_PLANS, speechCharacters } from "./credits";
 import { LOGO, OFFER_CSS, STYLE } from "./site-style";
 import { CONSOLE_LANGUAGES, CONSOLE_VOICES, STUDIO_SITE, VOICE_SITE } from "./voice-console";
 
@@ -12,7 +11,7 @@ const esc = (s: string) => s.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};
 /** Credits one call costs at a catalog price ("$0.05" is 50 credits). */
 const creditsAt = (price: string) => Math.max(1, Math.round(Number(price.replace("$", "")) * 1000));
 /** Hours of audio a month of Transcribe Pro buys through /transcribe/long (one call reads up to 60 minutes). */
-export const voiceProHours = (longPrice: string) => Math.floor(VOICE_PRO_CREDITS / creditsAt(longPrice));
+export const voiceProHours = (longPrice: string, credits: number = VOICE_PRO_CREDITS) => Math.floor(credits / creditsAt(longPrice));
 
 export interface VoicePrices { long: string; short: string; summary: string }
 /**
@@ -24,11 +23,14 @@ let current: VoicePrices = { long: "$0.05", short: "$0.01", summary: "$0.05" };
 export const setVoicePrices = (p: VoicePrices) => { current = { ...p }; };
 export const voicePrices = (): VoicePrices => ({ ...current });
 
-/** The JSON a Transcribe Pro buyer gets next to the key on /credits/claim. */
-export function voiceKeyJson(origin: string, key: string, prices: VoicePrices) {
+/**
+ * The JSON a Transcribe Pro buyer gets next to the key on /credits/claim. `credits` is what the checkout granted, so a
+ * plan bought through an older link is told its own hours, not today's.
+ */
+export function voiceKeyJson(origin: string, key: string, prices: VoicePrices, credits: number = VOICE_PRO_CREDITS) {
   return {
     voicePro: {
-      hoursEachMonth: voiceProHours(prices.long),
+      hoursEachMonth: voiceProHours(prices.long, credits),
       browser: `Open ${VOICE_TOOLS_URL}, paste the key under "Already have an access key?" in the Pro section, then use "Transcribe with Pro".`,
       transcribe: `curl -H "Authorization: Bearer ${key}" "${origin}/transcribe/long?url=<public audio URL>&subtitles=srt"`,
       openaiSdk: `OpenAI SDK: base_url="${origin}/v1", api_key="${key}", then audio.transcriptions.create(model="whisper-1", file=...)`,
@@ -36,11 +38,31 @@ export function voiceKeyJson(origin: string, key: string, prices: VoicePrices) {
   };
 }
 
-/** The voice section of /credits/claim for a Transcribe Pro checkout. */
-export function voiceKeyHtml(origin: string, key: string, prices: VoicePrices) {
-  const hours = voiceProHours(prices.long);
-  return `<h2>Use it for transcription</h2>
-<p>Your plan adds ${VOICE_PRO_CREDITS.toLocaleString("en-US")} credits each month: about ${hours} hours of audio at ${esc(prices.long)} an hour.</p>
+/**
+ * The name of the voice plan a checkout of this monthly amount bought. Voice Pro and the bundle return to the claim page
+ * with for=voice like Transcribe Pro does, and the buyer must read the name of what they paid for.
+ */
+export function voicePlanName(usdCents: number): string {
+  if (usdCents === VOICE_STUDIO_PLAN.usdCents) return "Voice Pro";
+  if (usdCents === VOICE_BUNDLE_PLAN.usdCents) return "Voice and Transcribe Pro";
+  return "Transcribe Pro";
+}
+
+/** What a month's credits buy, said for the plan that was bought. One balance pays for both, so it is "or", never "and". */
+export function voiceAllowance(usdCents: number, credits: number, prices: VoicePrices): string {
+  const hours = voiceProHours(prices.long, credits);
+  const characters = speechCharacters(credits).toLocaleString("en-US");
+  if (usdCents === VOICE_STUDIO_PLAN.usdCents) return `about ${characters} characters of studio voices`;
+  if (usdCents === VOICE_BUNDLE_PLAN.usdCents) return `about ${characters} characters of studio voices, or about ${hours} hours of audio at ${prices.long} an hour, or any mix of the two`;
+  return `about ${hours} hours of audio at ${prices.long} an hour`;
+}
+
+/** The voice section of /credits/claim for a voice plan checkout (`usdCents` is the monthly amount that was paid). */
+export function voiceKeyHtml(origin: string, key: string, prices: VoicePrices, credits: number = VOICE_PRO_CREDITS, usdCents: number = VOICE_PRO_CENTS) {
+  const speech = usdCents === VOICE_STUDIO_PLAN.usdCents || usdCents === VOICE_BUNDLE_PLAN.usdCents;
+  return `<h2>Use it for ${usdCents === VOICE_STUDIO_PLAN.usdCents ? "studio voices" : speech ? "voices and transcription" : "transcription"}</h2>
+<p>Your plan adds ${credits.toLocaleString("en-US")} credits each month: ${esc(voiceAllowance(usdCents, credits, prices))}.</p>${speech ? `
+<p><b>Studio voices:</b> open <a href="${esc(origin)}/#try">the voice console</a>, paste the key above under the studio voices and press Play. From code: <code>POST ${esc(origin)}/v1/audio/speech</code> with the key as the Bearer token.</p>` : ""}
 <ol><li><b>In your browser:</b> open <a href="${esc(VOICE_TOOLS_URL)}">Glyphcall Voice Transcribe</a>, paste the key above under <b>Already have an access key?</b> in the Pro section, then press <b>Transcribe with Pro</b>. Your files are then transcribed on our servers in seconds, with SRT or VTT subtitles.</li>
 <li><b>From code:</b> <pre>curl -H "Authorization: Bearer ${esc(key)}" "${esc(origin)}/transcribe/long?url=https://example.com/episode.mp3&amp;subtitles=srt"</pre></li>
 <li><b>With the OpenAI SDK:</b> set the base URL to <code>${esc(origin)}/v1</code> and the API key to your key; <code>audio.transcriptions.create</code> works as before.</li></ol>`;
@@ -48,7 +70,7 @@ export function voiceKeyHtml(origin: string, key: string, prices: VoicePrices) {
 
 /** Hours of audio that `credits` buy through /transcribe/long. */
 const hoursFor = (credits: number, longPrice: string) => Math.floor(credits / creditsAt(longPrice));
-/** The larger monthly plan, when the card checkout offers one beside the entry plan. */
+/** The larger monthly plan, when the card checkout offers one beside the entry plan (WEB_PLANS holds the developer plans only). */
 const largerPlan = () => WEB_PLANS.find((p) => p.usdCents > VOICE_PRO_CENTS);
 
 /**

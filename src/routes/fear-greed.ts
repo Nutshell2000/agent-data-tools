@@ -5,6 +5,7 @@
 import { entry, num, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { sourceJson } from "../lib/source-json";
+import { API_UA } from "../lib/outbound-ua";
 
 const ATTRIBUTION = "Crypto Fear & Greed Index by alternative.me (https://alternative.me/crypto/fear-and-greed-index/)";
 type Row = { value: string; value_classification: string; timestamp: string; time_until_update?: string };
@@ -40,7 +41,7 @@ export const FEAR_GREED: Entry[] = [
       const cache = typeof caches !== "undefined" ? (caches as unknown as { default: Cache }).default : undefined;
       let res = cache ? await cache.match(url).catch(() => undefined) : undefined;
       if (!res) {
-        try { res = await fetch(url, { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(8000) }); }
+        try { res = await fetch(url, { headers: { accept: "application/json", "user-agent": API_UA }, signal: AbortSignal.timeout(8000) }); }
         catch { throw new HttpError(502, "the index source did not answer in time; try again"); }
         if (!res.ok) throw new HttpError(502, `the index source answered HTTP ${res.status}; try again`);
         if (cache) { const copy = new Response(await res.clone().arrayBuffer(), { headers: { "content-type": "application/json", "cache-control": "max-age=600" } }); await cache.put(url, copy).catch(() => undefined); }

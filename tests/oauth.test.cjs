@@ -100,7 +100,7 @@ test('continue with free calls: a token without a key gets free calls counted pe
   const tokens = await (await exchange(clientId, post, verifier)).r.json();
   const result = await mcpCall(tokens.access_token, 'extract', { url: 'https://public.example/article' });
   assert.notEqual(result.isError, true);
-  assert.match(result.content.at(-1).text, /^Free call \(24 of 25/);
+  assert.match(result.content.at(-1).text, /^Free call \(9 of 10/);
 });
 
 test('rejects wrong PKCE verifiers, unknown keys, unregistered redirects and bad tokens', async () => {
@@ -128,8 +128,11 @@ test('signed-in without a key: no crypto payment request, a neutral message once
   try {
     await client.connect(new StreamableHTTPClientTransport(new URL(`${O}/mcp/account`), { requestInit: { headers: { authorization: `Bearer ${tokens.access_token}` } }, fetch: (u, i) => mf.dispatchFetch(u, i) }));
     assert.doesNotMatch(client.getInstructions(), /x402|USDC|payment request/);
-    // The larger chat model stays outside the free calls (AI text joined them 25 Oct 2026; /image and, since 27 Oct, the Brave
-    // search tools are not on /mcp/account).
+    // No AI tool is in the free calls (21 Nov 2026: a free user costs nothing metered): the larger chat model and the
+    // small one answer the same way (/image and the Brave search tools are not on /mcp/account at all).
+    const small = await client.callTool({ name: 'ai_chat', arguments: { prompt: 'Say hi' } });
+    assert.equal(small.isError, true);
+    assert.match(small.content.map((c) => c.text).join(' '), /not included in the free calls: they run tools that only compute or look up public data/);
     const ai = await client.callTool({ name: 'ai_chat_large', arguments: { prompt: 'Say hi' } });
     assert.equal(ai.isError, true);
     const text = ai.content.map((c) => c.text).join(' ');
@@ -145,7 +148,7 @@ test('signing in again without a key does not refill the free calls', async () =
     const result = await mcpCall(tokens.access_token, 'extract', { url: 'https://public.example/article' });
     return result.content.at(-1).text;
   };
-  assert.match(await freeCall('203.0.113.7'), /^Free call \(24 of 25/);
-  assert.match(await freeCall('203.0.113.7'), /^Free call \(23 of 25/, 'a second sign-in from the same place continues the same allowance');
-  assert.match(await freeCall('198.51.100.9'), /^Free call \(24 of 25/, 'another person gets their own allowance');
+  assert.match(await freeCall('203.0.113.7'), /^Free call \(9 of 10/);
+  assert.match(await freeCall('203.0.113.7'), /^Free call \(8 of 10/, 'a second sign-in from the same place continues the same allowance');
+  assert.match(await freeCall('198.51.100.9'), /^Free call \(9 of 10/, 'another person gets their own allowance');
 });

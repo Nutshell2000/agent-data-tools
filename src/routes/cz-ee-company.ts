@@ -12,9 +12,11 @@
  */
 import { entry, getJson, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { API_UA } from "../lib/outbound-ua";
+import { jsonWithin } from "../lib/source-json";
 
 const NOT_A_CREDIT_REPORT = "Register facts only. This is not a credit report, credit score or rating.";
-const UA = "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)";
+const UA = API_UA;
 const fold = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "");
 const words = (s: string) => fold(s).split(/[^a-z0-9]+/).filter((w) => w.length >= 2);
 const LEGAL_WORDS = new Set(["as", "ou", "sro", "s", "r", "o", "a", "spol", "vos", "ks", "mtu", "sa", "aktsiaselts", "osauhing", "ltd", "se"]);
@@ -130,7 +132,7 @@ async function ares<T>(path: string, body?: unknown): Promise<T | null> {
   }
   if (res.status === 404) return null;
   if (!res.ok) throw new HttpError(502, `the Czech register (ARES) answered HTTP ${res.status}; try again, nothing was charged`);
-  try { return (await res.json()) as T; } catch { throw new HttpError(502, "the Czech register (ARES) sent an unreadable answer"); }
+  try { return await jsonWithin<T>(res); } catch { throw new HttpError(502, "the Czech register (ARES) sent an unreadable answer"); }
 }
 
 export async function czLookup(ico: string) {

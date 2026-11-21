@@ -1,3 +1,4 @@
+import { keylessPath } from "./url-keys";
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { Env } from "./env";
 import { canBatch, queueBatched } from "./metrics-batch";
@@ -23,7 +24,8 @@ export const activeTrace = () => traces.getStore();
 export const safeSource = (source?: string | null) => source && /^[a-z0-9_-]{1,40}$/.test(source) ? source : undefined;
 
 export function withRequestTrace<T>(env: Env, path: string, source: string | null, waitUntil: (p: Promise<unknown>) => void, callback: () => T): T {
-  const trace: Trace = { requestId: crypto.randomUUID(), path, transport: "http", source: safeSource(source), stages: new Set(), emit(event) {
+  // The path is counted: an MCP connector address never brings its key along (lib/url-keys.ts).
+  const trace: Trace = { requestId: crypto.randomUUID(), path: keylessPath(path), transport: "http", source: safeSource(source), stages: new Set(), emit(event) {
     if (!env.METRICS) return;
     try {
       const stub = env.METRICS.get(env.METRICS.idFromName("global"));

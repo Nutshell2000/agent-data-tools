@@ -9,6 +9,7 @@ import { holidaysFor } from "./holidays";
 import { nagerHolidays } from "./holidays-world";
 import { CITIES } from "./weather";
 import { type Entity, firstQuantity, getEntities, itemIds, labelsOf, searchItems, statements } from "../lib/wikidata";
+import { sourceList, sourceShape, unreadableSource } from "../lib/source-json";
 
 /** Wikidata classes of inhabited places (city, big city, million city, metropolis, capital, town, village, human settlement, municipality seat, megacity). */
 const SETTLEMENT_TYPES: ReadonlySet<string> = new Set(["Q515", "Q1549591", "Q1637706", "Q200250", "Q5119", "Q3957", "Q532", "Q486972", "Q15284", "Q174844", "Q1093829", "Q7930989"]);
@@ -163,7 +164,7 @@ export const PUBLIC_DATA: Entry[] = [
 
   entry("/wikipedia", "Wikipedia article summary", "Short summary of a Wikipedia article in any language edition: title, one-paragraph extract, description, thumbnail and page URL. Use to ground an agent's answer in a quick, citable fact sheet.",
     ["wikipedia", "knowledge", ...P], { title: { type: "string", description: "Article title", required: true, example: "Stockholm" }, lang: { type: "string", description: "Language code (default en)", example: "en" } },
-    { title: "Stockholm", description: "Capital of Sweden", extract: "Stockholm is the capital and most populous city of Sweden…", url: "https://en.wikipedia.org/wiki/Stockholm", thumbnail: "https://upload.wikimedia.org/…", licence: "CC BY-SA 4.0", attribution: "Text from the Wikipedia article \"Stockholm\" by its contributors, licensed CC BY-SA 4.0" },
+    { title: "Stockholm", description: "Capital of Sweden", extract: "Stockholm is the capital and most populous city of Sweden…", type: "standard", url: "https://en.wikipedia.org/wiki/Stockholm", thumbnail: "https://upload.wikimedia.org/…", licence: "CC BY-SA 4.0", attribution: "Text from the Wikipedia article \"Stockholm\" by its contributors, licensed CC BY-SA 4.0" },
     async (_e, q) => {
       // 21 Nov 2026: a regional tag ("en-US", "pt_BR") named a host that does not exist (en-us.wikipedia.org), which
       // came out as our 502. It is read as its language unless it is one of Wikipedia's own hyphenated editions.
@@ -171,6 +172,8 @@ export const PUBLIC_DATA: Entry[] = [
       const lang = /[-_]/.test(sentLang) && !WIKI_HYPHENATED.has(sentLang) ? sentLang.split(/[-_]/)[0] : sentLang;
       if (!/^[a-z-]{2,12}$/.test(lang)) throw new HttpError(400, "lang must be a Wikipedia language code like en, sv, de");
       const r = await getJson<{ title: string; description?: string; extract: string; content_urls?: { desktop?: { page?: string } }; thumbnail?: { source: string }; type: string }>(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${enc(need(q, "title", 300).replace(/ /g, "_"))}`, { notFound: "no article with that title" });
+      // 21 Nov 2026: an answer without a title and a text was sold as an article with neither.
+      sourceShape(r, "Wikipedia", { title: "string", extract: "string" });
       return { title: r.title, description: r.description ?? null, extract: r.extract, type: r.type, url: r.content_urls?.desktop?.page ?? null, thumbnail: r.thumbnail?.source ?? null, licence: "CC BY-SA 4.0", attribution: `Text from the Wikipedia article "${r.title}" by its contributors, licensed CC BY-SA 4.0` };
     }),
 
@@ -183,9 +186,10 @@ export const PUBLIC_DATA: Entry[] = [
       type Meaning = { partOfSpeech: string; definitions: { definition: string; example: string | null }[] };
       const lookup = async (w: string) => {
         const r = await getJson<Record<string, Array<{ partOfSpeech: string; definitions: Sense[] }>>>(`https://en.wiktionary.org/api/rest_v1/page/definition/${enc(w.replaceAll(" ", "_"))}`, { notFound: "word not found" });
-        return (r.en ?? []).slice(0, 8).map((m): Meaning => ({
+        // 21 Nov 2026: the English section is a list or absent (a word with entries in other languages only).
+        return (r.en === undefined ? [] : sourceList<{ partOfSpeech: string; definitions: Sense[] }>(r.en, "Wiktionary")).slice(0, 8).map((m): Meaning => ({
           partOfSpeech: m.partOfSpeech,
-          definitions: m.definitions.map((d) => ({ definition: stripHtml(d.definition ?? ""), example: d.examples?.[0] ? stripHtml(d.examples[0]) : null })).filter((d) => d.definition).slice(0, 4),
+          definitions: sourceList<Sense>(m.definitions, "Wiktionary").map((d) => ({ definition: stripHtml(d.definition ?? ""), example: d.examples?.[0] ? stripHtml(d.examples[0]) : null })).filter((d) => d.definition).slice(0, 4),
         })).filter((m) => m.definitions.length);
       };
       // Wiktionary entries are case-sensitive: "Running" is only a surname, "running" the verb. A capitalised word is looked
@@ -205,6 +209,8 @@ export const PUBLIC_DATA: Entry[] = [
       const period = pick(q, "period", ["hour", "day", "week", "month"] as const, "day");
       const { feed, min } = quakeFeed(q("minMagnitude"));
       const r = await getJson<{ features: Array<{ properties: { mag: number; place: string; time: number; tsunami: number; url: string }; geometry: { coordinates: [number, number, number] } }> }>(`https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/${feed}_${period}.geojson`);
+      // 21 Nov 2026: a feed without its list of quakes was our 500; it is the source's failure (lib/source-json.ts).
+      sourceShape(r, "USGS", { features: "array" });
       const features = min === null ? r.features : r.features.filter((f) => typeof f.properties.mag === "number" && f.properties.mag >= min);
       return { period, minMagnitude: min === null ? "significant" : String(min), count: features.length, earthquakes: features.slice(0, 100).map((f) => ({ magnitude: f.properties.mag, place: f.properties.place, time: new Date(f.properties.time).toISOString(), depthKm: f.geometry.coordinates[2], lat: f.geometry.coordinates[1], lon: f.geometry.coordinates[0], tsunami: f.properties.tsunami === 1, url: f.properties.url })) };
     }),
@@ -214,7 +220,7 @@ export const PUBLIC_DATA: Entry[] = [
     { time: "2026-10-18T12:00", europeanAqi: 21, usAqi: 34, pm2_5: 6.1, pm10: 9.8, ozone: 52, nitrogenDioxide: 7.2, sulphurDioxide: 0.9, carbonMonoxide: 160, units: "μg/m³" },
     async (_e, q) => {
       const r = await getJson<{ current: Record<string, number | string> }>(`https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat(q)}&longitude=${lon(q)}&current=european_aqi,us_aqi,pm2_5,pm10,ozone,nitrogen_dioxide,sulphur_dioxide,carbon_monoxide`);
-      const c = r.current;
+      const c = sourceShape(r, "Open-Meteo", { current: "object" }).current; // 21 Nov 2026: was a 500 without it
       return { time: c.time, europeanAqi: c.european_aqi, usAqi: c.us_aqi, pm2_5: c.pm2_5, pm10: c.pm10, ozone: c.ozone, nitrogenDioxide: c.nitrogen_dioxide, sulphurDioxide: c.sulphur_dioxide, carbonMonoxide: c.carbon_monoxide, units: "μg/m³" };
     }),
 
@@ -224,7 +230,10 @@ export const PUBLIC_DATA: Entry[] = [
     async (_e, q) => {
       const r = await getJson<{ current: { uv_index: number }; daily: { uv_index_max: number[] } }>(`https://api.open-meteo.com/v1/forecast?latitude=${lat(q)}&longitude=${lon(q)}&current=uv_index&daily=uv_index_max&forecast_days=1&timezone=auto`);
       const cat = (u: number) => (u < 3 ? "low" : u < 6 ? "moderate" : u < 8 ? "high" : u < 11 ? "very high" : "extreme");
+      // 21 Nov 2026: a missing section was a 500, and a null index was sold as "low".
+      sourceShape(r, "Open-Meteo", { "current.uv_index": "number", "daily.uv_index_max": "array" });
       const max = r.daily.uv_index_max[0];
+      if (typeof max !== "number") throw unreadableSource("Open-Meteo");
       return { uvIndex: r.current.uv_index, category: cat(r.current.uv_index), todayMax: max, todayMaxCategory: cat(max), advice: max < 3 ? "No protection needed for most people." : max < 6 ? "Protection is advisable around midday." : "Seek shade at midday; use sunscreen, a hat and sunglasses." };
     }),
 
@@ -262,6 +271,9 @@ export const PUBLIC_DATA: Entry[] = [
     async (_e, q) => {
       const la = lat(q), lo = lon(q);
       const r = await getJson<{ elevation: number[] }>(`https://api.open-meteo.com/v1/elevation?latitude=${la}&longitude=${lo}`);
+      // 21 Nov 2026: an answer without the list was sold as "elevation unknown" (null). Only a malformed answer is
+      // refused: a list is still read as before, whatever it holds.
+      sourceShape(r, "Open-Meteo", { elevation: "array" });
       return { lat: la, lon: lo, elevationM: r.elevation?.[0] ?? null };
     }),
 
@@ -313,6 +325,8 @@ export const PUBLIC_DATA: Entry[] = [
       if (!/^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/.test(pkg)) throw new HttpError(400, "not a valid npm package name");
       const get = (p: string) => getJson<{ downloads: number }>(`https://api.npmjs.org/downloads/point/${p}/${pkg}`, { notFound: "package not found" });
       const [d, w, m] = await Promise.all([get("last-day"), get("last-week"), get("last-month")]);
+      // 21 Nov 2026: an answer without the count was sold with the three numbers missing.
+      for (const part of [d, w, m]) sourceShape(part, "the npm registry", { downloads: "number" });
       return { package: pkg, lastDay: d.downloads, lastWeek: w.downloads, lastMonth: m.downloads };
     }),
 
@@ -323,7 +337,8 @@ export const PUBLIC_DATA: Entry[] = [
       const pkg = need(q, "package", 100).trim();
       if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(pkg)) throw new HttpError(400, "not a valid PyPI package name");
       const r = await getJson<{ info: { name: string; version: string; summary: string; license: string; license_expression?: string; requires_python: string; home_page: string; project_urls?: Record<string, string> }; releases: Record<string, Array<{ upload_time_iso_8601: string }>> }>(`https://pypi.org/pypi/${enc(pkg)}/json`, { notFound: "package not found" });
-      const files = r.releases[r.info.version] ?? [];
+      sourceShape(r, "PyPI", { "info.name": "string", "info.version": "string", releases: "object" }); // 21 Nov 2026: was a 500 without them
+      const files = Object.hasOwn(r.releases, r.info.version) && Array.isArray(r.releases[r.info.version]) ? r.releases[r.info.version] : [];
       return { package: r.info.name, version: r.info.version, summary: r.info.summary, license: r.info.license_expression || r.info.license || null, requiresPython: r.info.requires_python || null, homePage: r.info.home_page || r.info.project_urls?.Homepage || null, released: files[0]?.upload_time_iso_8601 ?? null, releases: Object.keys(r.releases).length };
     }),
 
@@ -339,8 +354,11 @@ export const PUBLIC_DATA: Entry[] = [
     ] },
     async (_e, q) => {
       const n = num(q, "count", { min: 1, max: 20, fallback: 10, integer: true });
-      const ids = await getJson<number[]>("https://hacker-news.firebaseio.com/v0/topstories.json");
+      // 21 Nov 2026: the list of ids and each story are checked before they are read (they were a 500 when malformed).
+      const ids = sourceList<number>(await getJson<number[]>("https://hacker-news.firebaseio.com/v0/topstories.json"), "Hacker News");
+      if (!ids.length) throw unreadableSource("Hacker News"); // the front page is never empty: an empty list is not an answer to sell
       const items = await Promise.all(ids.slice(0, n).map((id) => getJson<{ id: number; title: string; url?: string; score: number; descendants?: number; by: string; time: number }>(`https://hacker-news.firebaseio.com/v0/item/${id}.json`)));
+      for (const s of items) sourceShape(s, "Hacker News", { id: "number", time: "number" });
       return { count: items.length, stories: items.map((s) => ({ id: s.id, title: s.title, url: s.url ?? null, points: s.score, comments: s.descendants ?? 0, by: s.by, time: new Date(s.time * 1000).toISOString(), discussion: `https://news.ycombinator.com/item?id=${s.id}` })) };
     }),
 
@@ -349,6 +367,8 @@ export const PUBLIC_DATA: Entry[] = [
     { lat: 12.3, lon: -45.6, altitudeKm: 418.2, speedKmh: 27580, visibility: "daylight", time: "2026-10-18T12:00:00.000Z" },
     async () => {
       const r = await getJson<{ latitude: number; longitude: number; altitude: number; velocity: number; visibility: string; timestamp: number }>("https://api.wheretheiss.at/v1/satellites/25544");
+      // 21 Nov 2026: an answer without the position was a 500 (an invalid date).
+      sourceShape(r, "the ISS position source", { latitude: "number", longitude: "number", altitude: "number", velocity: "number", timestamp: "number" });
       return { lat: r.latitude, lon: r.longitude, altitudeKm: Math.round(r.altitude * 10) / 10, speedKmh: Math.round(r.velocity), visibility: r.visibility, time: new Date(r.timestamp * 1000).toISOString() };
     }),
 ];

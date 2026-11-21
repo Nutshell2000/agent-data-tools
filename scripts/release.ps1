@@ -103,7 +103,9 @@ function StageRelease {
   $folders = @(git ls-tree -d --name-only HEAD)
   $untracked = @(git -c core.quotepath=off ls-files --others --exclude-standard)
   $picked = SelectNewFiles $untracked $folders
-  foreach ($f in $picked.add) { git add -- $f }
+  # 21 Nov 2026: a new file that cannot be staged stops the step. Before, the next git command reset the exit code and
+  # the release went on without the file (a new test file left out is a check that never runs).
+  foreach ($f in $picked.add) { git add -- $f; if ($LASTEXITCODE -ne 0) { throw "could not stage the new file $f" } }
   if ($picked.left.Count) {
     Write-Host "[warn] $($picked.left.Count) new file(s) were NOT added to the release commit (top-level, in a folder the repository does not track, or named like a secret). Commit the ones that belong on the branch yourself:" -ForegroundColor Yellow
     foreach ($f in $picked.left) { Write-Host "         $f" -ForegroundColor Yellow }
@@ -210,7 +212,9 @@ Step 'tsc' { npx tsc --noEmit -p . }
 # an outside source is down and the release does not touch that tool.
 #   A real release runs it after the PR is open, while CI works (about two minutes saved); a dry run runs it here.
 function SmokeExamples {
-  if (-not $SkipSmoke) { $null = Step 'smoke:examples' { node scripts/smoke-examples.mjs --retry } ' 0 fail;' } else { Write-Host '[skip] smoke:examples (-SkipSmoke)' -ForegroundColor Yellow }
+  # 21 Nov 2026: through the wrapper, which restarts the run when the local runtime ends mid-run (exit code 0xC0000409 on
+  # the release machine, twice that day) and continues with the tools not yet checked. A failing example still fails.
+  if (-not $SkipSmoke) { $null = Step 'smoke:examples' { node scripts/smoke-examples-supervised.mjs --retry } ' 0 fail;' } else { Write-Host '[skip] smoke:examples (-SkipSmoke)' -ForegroundColor Yellow }
   RevertGenerated
 }
 if ($Dry) { SmokeExamples } else { RevertGenerated }
@@ -344,6 +348,12 @@ $agentcashLong = Join-Path $env:LOCALAPPDATA 'agent-data-tools\agentcash-long\no
 # the deploy and repository credentials. -AgentcashVersion runs one exact version; without it the call is as before.
 $agentcashSpec = if ($AgentcashVersion) { "agentcash@$AgentcashVersion" } else { 'agentcash' }
 if (-not (Test-Path $agentcashLong) -and -not $AgentcashVersion) { Write-Host '[warn] x402scan registration runs the newest agentcash from npm (no version given); pass -AgentcashVersion x.y.z to pin it' -ForegroundColor Yellow }
+# 21 Nov 2026: the local long-timeout copy wins over -AgentcashVersion (the line below), which nothing said: an operator
+# who named a version would believe that version ran. Say which copy runs; the choice itself is unchanged.
+if ((Test-Path $agentcashLong) -and $AgentcashVersion) {
+  $localAgentcash = try { (Get-Content (Join-Path (Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $agentcashLong))) 'package.json') -Raw | ConvertFrom-Json).version } catch { 'unknown' }
+  Write-Host "[warn] -AgentcashVersion $AgentcashVersion is not used: the local long-timeout copy of agentcash (version $localAgentcash) runs the x402scan registration. Update or remove that copy to run the version you named." -ForegroundColor Yellow
+}
 Once 'x402scan' { if (Test-Path $agentcashLong) { node $agentcashLong register $Origin } else { npx --yes $agentcashSpec register $Origin } } '"success":\s*true'
 Once 'agent402' { (Invoke-RestMethod -Method Post 'https://agent402.tools/api/index/register' -ContentType 'application/json' -Body (@{ origin = $Origin } | ConvertTo-Json) -TimeoutSec 120 | ConvertTo-Json -Compress -Depth 2) } '"listed":\s*true'
 Once 'zero' { node scripts/register-zero.mjs $Origin } '-> 20\d'

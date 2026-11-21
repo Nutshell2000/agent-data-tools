@@ -2,7 +2,7 @@
 // Models and licences (all permit commercial use): Llama 3.1 8B (Llama 3.1 Community License),
 // DistilBERT SST-2 (Apache 2.0), M2M100 1.2B (MIT), BGE base/M3 (MIT).
 // The account's free daily Workers AI allowance is the only budget: when it runs out, runAi answers 503
-// (uncharged). Since 25 Oct 2026 (Workers Paid) these paths are in the free calls and marketplace listings; AI_DAILY_CAP bounds the bill.
+// (uncharged). Since 25 Oct 2026 (Workers Paid) these paths are in the marketplace listings; AI_DAILY_CAP bounds the bill. No free path runs them since 21 Nov 2026 (lib/capacity.ts FREE_EXCLUDED_METERED).
 import { keccak256, toBytes } from "viem";
 import { entry, need, num, opt, pick, type Entry, type Input } from "../family";
 import { MODELS, runAi } from "../lib/ai";
@@ -484,7 +484,7 @@ export const AI_TEXT: Entry[] = [
       }));
       return { translatedText: translated.join("").trim(), from: from ?? "auto", to, chars: source.length, chunks: chunks.length, model: useChat ? TRANSLATE_MODEL : AI_MODELS.translate };
     }),
-  ai("/ai/embed", "OpenAI compatible embeddings: BGE-M3, 1,024 dimensions","A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. Use for semantic search, RAG retrieval, clustering and deduplication.",
+  ai("/ai/embed", "OpenAI compatible embeddings: BGE-M3, 1,024 dimensions","A 1,024-dimension embedding vector for up to 4,000 characters of text in 100+ languages, from BAAI's BGE-M3. This tool answers in its own shape (dimensions, embedding, model); the OpenAI embeddings shape is at /v1/embeddings. Use for semantic search, RAG retrieval, clustering and deduplication.",
     ["embeddings", "vector", "rag", "search"], { text: { type: "string", description: "Text to embed, up to 4,000 characters", required: true, example: "pay-per-call APIs for AI agents" } },
     { dimensions: 1024, embedding: [0.0123, -0.0456, 0.0789], model: AI_MODELS.embed },
     async (env, q) => {

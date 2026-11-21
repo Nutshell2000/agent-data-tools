@@ -366,7 +366,7 @@ export const STOCKS: Entry[] = [
     {
       symbol: { type: "string", description: "Ticker (AAPL, ^GSPC, BTC-USD) or a company name", required: true, example: "AAPL" },
       range: { type: "string", description: "1d, 5d, 1mo (default), 3mo, 6mo, 1y, 2y, 5y, 10y, ytd or max", enum: RANGES, example: "1mo" },
-      interval: { type: "string", description: "1m, 5m, 15m, 30m, 60m, 1d, 1wk or 1mo (default suits the range; intraday bars reach back about 60 days)", enum: INTERVALS, example: "1d" },
+      interval: { type: "string", description: "1m, 5m, 15m, 30m, 60m (or 1h), 1d, 1wk or 1mo (default suits the range; intraday bars reach back about 60 days)", enum: INTERVALS, example: "1d" },
     },
     { symbol: "AAPL", currency: "USD", range: "1mo", interval: "1d", count: 1, first: 255.1, last: 270.37, changePercent: 5.9859, high: 271.2, low: 252.4, bars: [{ time: "2026-11-05T14:30:00.000Z", open: 268.9, high: 271.2, low: 267.9, close: 270.37, adjClose: 270.37, volume: 41234567 }], note: NOTE },
     (_env, q) => stockHistory(need(q, "symbol", 100), opt(q, "range", 10), opt(q, "interval", 10))),

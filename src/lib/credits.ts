@@ -82,59 +82,82 @@ export async function hashCreditKey(key: string): Promise<string> {
 }
 
 /**
- * The monthly plan (the owner, 11 Nov 2026: "$9 a month for 15,000 credits and $19 a month for 40,000 credits, with unused
- * credits kept"; no free allowance; she creates the Stripe objects herself). A plan is an automatic monthly top-up of one
- * key: a Stripe subscription whose every paid invoice adds the plan's credits to the same ledger the packs use, so credits
- * never expire and nothing else about a key changes. Each payment link is a recurring price with metadata adt_credits
- * equal to `credits`, automatic tax off, success URL /credits/claim?session_id={CHECKOUT_SESSION_ID}.
- * A plan with an empty `url` is not offered anywhere; while both are empty the service behaves exactly as before.
- * `PLAN_PORTAL_URL` is Stripe's customer portal login link, where a subscriber cancels; plans are offered only when it is set.
- * No webhook: renewals are read from Stripe when the key is used (lib/credit-routes.ts `syncPlan`), which needs read
- * access to Invoices on STRIPE_READ_KEY. The portal must not allow switching plans: a renewal grants the credits of the
- * plan the key was bought with.
+ * The monthly plans. A plan is an automatic monthly top-up of one key: a Stripe subscription whose every paid invoice
+ * adds the plan's credits to the same ledger the packs use, so credits never expire and nothing else about a key
+ * changes. Each payment link is a recurring monthly price in USD with metadata adt_credits equal to `credits` and
+ * automatic tax off.
+ *
+ * The rule since 21 Nov 2026 (the owner's decision): a plan never gives more credits than its price covers at
+ * 1 credit = $0.001, so `credits <= usdCents * 10` on every plan on sale (tests/credit-plans.test.cjs). Before that
+ * date the plans gave 15,000 credits for $3 or $9 and 40,000 for $19; the model cost of spending those could exceed
+ * the price paid.
+ *
+ * `verifyCheckout` matches a paid subscription checkout by (amount in USD cents, adt_credits) against EVERY row here,
+ * whatever its `kind`:
+ *   "developer": the plans the developer pages offer (/credits, the product pages, the free-key page, the balance
+ *                answer, llms.txt). `WEB_PLANS` and `planLinks` list only these, entry plan first.
+ *   "voice":     plans sold by the voice site under their own names (Voice Pro, Voice and Transcribe Pro). Never in
+ *                the developer lists; reach them through VOICE_STUDIO_PLAN and VOICE_BUNDLE_PLAN.
+ *   "retired":   pairs no page offers any more (url ""). Their payment links may still be live, and a checkout
+ *                through one is granted exactly what that link promised.
+ * Transcribe Pro has the entry plan's amount and credits, so it shares that row; only its link differs
+ * (VOICE_PRO_URL).
+ *
+ * `PLAN_PORTAL_URL` is Stripe's customer portal login link, where a subscriber cancels; plans are offered only when it
+ * is set. No webhook: renewals are read from Stripe when the key is used (lib/credit-routes.ts `syncPlans`), which
+ * needs read access to Invoices on STRIPE_READ_KEY. The portal must not allow switching plans: a renewal grants the
+ * credits of the plan the key was bought with.
  */
-// The links were created on 11 Nov 2026 in the seller's Stripe account: payment links
-// plink_1UaY2EDhGrPcm8Sc0Ng5cNSZ ($9) and plink_1UaY2NDhGrPcm8ScJrv9YvFo ($19), recurring monthly in USD, automatic tax
-// off like the packs, metadata adt_credits 15000 and 40000, redirect to /credits/claim. The portal link is the account's
-// default portal configuration: cancel at the end of the period on, switching plans and changing quantity off.
-export const CREDIT_PLANS = [
-  // 19 Nov 2026: the owner set the entry plan to $3/mo — half of ElevenLabs' $6 Starter — to win price-sensitive
-  // buyers. Stripe product prod_VeuQR9E5ya8nw3, price price_1Udac6DhGrPcm8Sc8CZIcA9n, payment link
-  // plink_1Udb2iDhGrPcm8ScTZNb5yyH with metadata adt_credits=15000 and success URL /credits/claim, created in her
-  // Chrome. First in the array so it is the lead plan shown as "from $3 a month" on every product page and the homepage.
-  { usdCents: 300, credits: 15_000, url: "https://buy.stripe.com/bJe28r01Q5Lp6lA7UVbII0d" },
-  // Kept for verifyCheckout: Transcribe Pro and existing $9 subscribers pay $9, which must still grant a key. url=""
-  // hides it from the buy pages (WEB_PLANS filters on url) without breaking that verification path.
-  { usdCents: 900, credits: 15_000, url: "" },
-  { usdCents: 1_900, credits: 40_000, url: "https://buy.stripe.com/fZu7sLdSG0r5dO22ABbII08" },
-] as const;
+export type PlanKind = "developer" | "voice" | "retired";
+export interface CreditPlan { readonly usdCents: number; readonly credits: number; readonly url: string; readonly kind: PlanKind }
+/** Voice Pro: $5 a month for the studio voices. Shown as characters of speech (`speechCharacters`), not as credits. */
+export const VOICE_STUDIO_PLAN: CreditPlan = { usdCents: 500, credits: 4_000, url: "https://buy.stripe.com/bJe5kD7ui5Lp8tI8YZbII0f", kind: "voice" };
+/** Voice and Transcribe Pro: $7 a month, the two voice plans on one key. */
+export const VOICE_BUNDLE_PLAN: CreditPlan = { usdCents: 700, credits: 7_000, url: "https://buy.stripe.com/8x2bJ14i6ehVh0e7UVbII0g", kind: "voice" };
+// The five payment links on sale were created on 21 Nov 2026 (four rows: Transcribe Pro shares the entry plan's).
+// A $5 subscription (4,000 credits) and the $5 pack (5,000 credits, paid once) cannot be confused: the checkout's mode
+// picks the table, and the credits must match the amount within it.
+export const CREDIT_PLANS: readonly CreditPlan[] = [
+  // The entry plan. First, so every "from $X a month" line quotes it.
+  { usdCents: 300, credits: 3_000, url: "https://buy.stripe.com/28E28r4i6ddR5hwfnnbII0i", kind: "developer" },
+  { usdCents: 1_900, credits: 19_000, url: "https://buy.stripe.com/eVq00j5ma0r511ggrrbII0j", kind: "developer" },
+  VOICE_STUDIO_PLAN,
+  VOICE_BUNDLE_PLAN,
+  // On sale until 21 Nov 2026 ($3 from 19 Nov, $9 and $19 from 11 Nov). Kept so a checkout through an old link still
+  // verifies and is granted what it paid for.
+  { usdCents: 300, credits: 15_000, url: "", kind: "retired" },
+  { usdCents: 900, credits: 15_000, url: "", kind: "retired" },
+  { usdCents: 1_900, credits: 40_000, url: "", kind: "retired" },
+];
 export const PLAN_PORTAL_URL: string = "https://billing.stripe.com/p/login/dRm28r15U4Hl9xMfnnbII00";
 /**
- * Glyphcall Transcribe Pro (the owner, 15 Nov 2026: "Yes, Transcribe first" and "Yes, build it"): the $9 plan sold under the
- * transcription name. Its Stripe product and links were made by the direct sales session (prod_VdEGz7ftudKRRG, link
- * plink_1UbxneDhGrPcm8Sca0Da500q; the $1 pack plink_1UbxngDhGrPcm8SccxeROgvQ). They return to the Glyphcall Voice
- * transcribe page, which claims the key itself. Same amount and adt_credits as the $9 plan and the $1 pack, so
- * `verifyCheckout` grants them unchanged. A duplicate "Voice Pro" link made the same morning (plink_1UbyB8…) was
- * deactivated before any checkout: keep one product under one name.
+ * Transcribe Pro: the entry plan's amount and credits under the transcription name, through its own payment link
+ * (created 21 Nov 2026), which returns to the voice site's transcribe page; that page claims the key itself.
+ * `verifyCheckout` grants it through the entry plan's row. Hours are computed from the live price of
+ * /transcribe/long (lib/voice-pro.ts `voiceProHours`), never typed: 3,000 credits are about 60 hours at $0.05.
  */
-// 19 Nov 2026: owner dropped Transcribe Pro to $3/mo (half of ElevenLabs' $6 Starter). New product price/link created
-// in her Stripe: plink_1UdbbODhGrPcm8ScMO6VQzYr on prod_VdEGz7ftudKRRG, metadata adt_credits=15000, success URL
-// /credits/claim?for=voice&session_id={CHECKOUT_SESSION_ID}, tax off. The old $9 link is kept live for existing
-// subscribers; verifyCheckout still matches it via the hidden $9 plan in CREDIT_PLANS.
-// 21 Nov 2026: both links above were mistyped by hand on 19 Nov and led to Stripe's "page not found" (the lead $3 plan on
-// the homepage and /credits, and the Transcribe Pro button). The URLs now are the ones Stripe's API returns for
-// plink_1Udb2iDhGrPcm8ScTZNb5yyH and plink_1UdbbODhGrPcm8ScMO6VQzYr (read-only lookup); tests/credit-plans checks the shape.
-export const VOICE_PRO_URL: string = "https://buy.stripe.com/00w3cvbKygq3bFU5MNbII0e";
-export const VOICE_PRO_CREDITS = 15_000;
+// Transcribe Pro, 21 Nov 2026: $3 a month for 3,000 credits (about 60 hours), the owner's rule that a plan never grants
+// more credits than its price covers. Payment link plink_1UeDhhDhGrPcm8Scf0yFpKLM (metadata adt_credits=3000, returns
+// to the voice transcribe page). The earlier links still verify through the retired rows in CREDIT_PLANS.
+export const VOICE_PRO_URL: string = "https://buy.stripe.com/5kQ8wP7uiflZcJYejjbII0h";
+export const VOICE_PRO_CREDITS = 3_000;
 /** Price of the Transcribe Pro plan in cents; the landing page and its JSON-LD derive their copy from this. */
 export const VOICE_PRO_CENTS = 300;
+/**
+ * Credits a prepaid key pays per started 100 characters on POST /v1/audio/speech (lib/voice-billing.ts explains the
+ * rate and re-exports it). It lives here because this file imports nothing, so the plans and the pages can both use it.
+ */
+export const SPEECH_CREDITS_PER_100 = 4;
+/** Characters of studio speech that `credits` buy at the key rate: 4,000 credits are 100,000 characters. */
+export const speechCharacters = (credits: number) => Math.floor(credits / SPEECH_CREDITS_PER_100) * 100;
 /** The $1 pack sold for transcription (1,000 credits). */
 export const VOICE_HOURS_PACK_URL: string = "https://buy.stripe.com/9B6aEX5ma5LpcJYgrrbII0a";
 export const VOICE_HOURS_PACK_CREDITS = 1_000;
 /** The free browser voice tools, whose Pro card takes the key (glyphcall-voice-tools, public/transcribe.js). */
 // 21 Nov 2026: the transcribe page itself (its Pro card is #fast); the pages.dev root only redirected to the voice home page.
 export const VOICE_TOOLS_URL = "https://voice.glyphcall.com/transcribe#fast";
-export const WEB_PLANS = PLAN_PORTAL_URL === "" ? [] : CREDIT_PLANS.filter((p) => (p.url as string) !== "");
+/** The plans the developer pages offer, entry plan first. The voice plans and the retired pairs are never in it. */
+export const WEB_PLANS = PLAN_PORTAL_URL === "" ? [] : CREDIT_PLANS.filter((p) => p.kind === "developer" && p.url !== "");
 export const planLinks = (keyHash?: string) => WEB_PLANS.map((p) => ({ price: `$${p.usdCents / 100} a month`, creditsEachMonth: p.credits, buy: keyHash ? `${p.url}?client_reference_id=${topUpReference(keyHash)}` : p.url }));
 /** How long a key's plan may go unread before a call reads Stripe again for a paid renewal. */
 export const PLAN_SYNC_MS = 12 * 3_600_000;
@@ -142,7 +165,7 @@ export const PLAN_SYNC_MS = 12 * 3_600_000;
 interface PlanState { subscriptionId: string; credits: number; since: string; syncedAt: string }
 /** A free key's monthly allowance of calls (14 Nov 2026): `used` counts this `month` (UTC, "2026-11") and starts again in the next. */
 export interface FreeAllowance { emailHash: string; perMonth: number; month: string; used: number }
-interface Account { balanceMicros: number; purchasedMicros: number; spentMicros: number; calls: number; createdAt: string; sessions: string[]; plans?: PlanState[]; free?: FreeAllowance }
+interface Account { balanceMicros: number; purchasedMicros: number; spentMicros: number; calls: number; createdAt: string; sessions: string[]; plans?: PlanState[]; free?: FreeAllowance; /** Hashes of the keys this account had before a rotation (newest last, at most MOVED_KEPT). */ movedFrom?: string[] }
 /** key is null for a top-up: the buyer already holds it and it is never seen here. */
 interface SessionRecord { key: string | null; keyHash: string; credits: number; at: string }
 interface Txn { get<T>(key: string): Promise<T | undefined>; put(key: string, value: unknown): Promise<void>; delete(key: string): Promise<boolean> }
@@ -150,6 +173,18 @@ export interface CreditStorage { transaction<T>(callback: (txn: Txn) => Promise<
 
 const accountKey = (hash: string) => `credit:acct:${hash}`;
 const sessionKey = (id: string) => `credit:session:${id}`;
+/**
+ * Where a replaced key's account went: the hash of the key that holds it now. Read only by a top-up and a refund that
+ * were on their way when the key was replaced; the old key itself pays for nothing.
+ */
+const movedKey = (oldHash: string) => `credit:moved:${oldHash}`;
+const MOVED_KEPT = 20;
+/** The hash that holds the account now: the given one while its account exists, else the one a rotation moved it to. */
+async function currentHash(txn: Txn, keyHash: string): Promise<string | null> {
+  if (await txn.get<Account>(accountKey(keyHash))) return keyHash;
+  const moved = await txn.get<string>(movedKey(keyHash));
+  return typeof moved === "string" && (await txn.get<Account>(accountKey(moved))) ? moved : null;
+}
 /** One record per subscription invoice whose credits were granted, so a renewal is never granted twice. */
 const invoiceKey = (id: string) => `credit:invoice:${id}`;
 /** One record per confirmed e-mail address (its hash), so an address gets one free key however often it signs up. */
@@ -162,19 +197,30 @@ const isSubscriptionId = (id: unknown): id is string => typeof id === "string" &
  * Credits a paid Checkout Session exactly once. A repeat claim of the same session returns the
  * key issued the first time, so a buyer who reloads the claim page sees the same key, never a second grant.
  * The raw key is kept with its session record for that reason; storage is private to this Worker.
+ *
+ * `requireExisting` is a top-up: the credits go to the account `keyHash` names only if it exists, checked in the same
+ * transaction as the grant (a check before it could pass while the key was being replaced, and the grant then made a
+ * new account under the old key). A key that was replaced meanwhile is followed to its current hash. When there is
+ * no such account, or the session was already granted to another key, nothing is written and `missing` is true: the
+ * caller issues a new key instead, so a payment is never lost.
  */
-export async function issueCredits(storage: CreditStorage, grant: { sessionId: string; credits: number; key: string | null; keyHash: string; plan?: { subscriptionId: string; invoiceId: string } }) {
+export async function issueCredits(storage: CreditStorage, grant: { sessionId: string; credits: number; key: string | null; keyHash: string; plan?: { subscriptionId: string; invoiceId: string }; requireExisting?: boolean }): Promise<{ key: string | null; credits: number; balanceMicros: number; repeated: boolean; missing?: true }> {
   if (!Number.isSafeInteger(grant.credits) || grant.credits <= 0) throw new Error("invalid credit grant");
   if (grant.plan && !(isSubscriptionId(grant.plan.subscriptionId) && isInvoiceId(grant.plan.invoiceId))) throw new Error("invalid plan grant");
   return storage.transaction(async (txn) => {
     const existing = await txn.get<SessionRecord>(sessionKey(grant.sessionId));
+    const target = grant.requireExisting ? await currentHash(txn, grant.keyHash) : grant.keyHash;
+    const none = { key: null, credits: 0, balanceMicros: 0, repeated: false, missing: true as const };
     if (existing) {
+      if (grant.requireExisting && existing.keyHash !== target) return none;
       const account = await txn.get<Account>(accountKey(existing.keyHash));
       return { key: existing.key, credits: existing.credits, balanceMicros: account?.balanceMicros ?? 0, repeated: true };
     }
+    if (target === null) return none;
+    const keyHash = target, key = grant.requireExisting ? null : grant.key;
     const at = new Date().toISOString();
     const micros = grant.credits * MICROS_PER_CREDIT;
-    const account: Account = (await txn.get<Account>(accountKey(grant.keyHash)))
+    const account: Account = (await txn.get<Account>(accountKey(keyHash)))
       ?? { balanceMicros: 0, purchasedMicros: 0, spentMicros: 0, calls: 0, createdAt: at, sessions: [] };
     account.balanceMicros += micros;
     account.purchasedMicros += micros;
@@ -184,11 +230,11 @@ export async function issueCredits(storage: CreditStorage, grant: { sessionId: s
       // A key can hold more than one subscription (a second checkout into the same key): each grants its own credits.
       const subscriptionId = grant.plan.subscriptionId;
       account.plans = [...(account.plans ?? []).filter((p) => p.subscriptionId !== subscriptionId), { subscriptionId, credits: grant.credits, since: at, syncedAt: at }];
-      await txn.put(invoiceKey(grant.plan.invoiceId), { keyHash: grant.keyHash, credits: grant.credits, at });
+      await txn.put(invoiceKey(grant.plan.invoiceId), { keyHash, credits: grant.credits, at });
     }
-    await txn.put(accountKey(grant.keyHash), account);
-    await txn.put(sessionKey(grant.sessionId), { key: grant.key, keyHash: grant.keyHash, credits: grant.credits, at } satisfies SessionRecord);
-    return { key: grant.key, credits: grant.credits, balanceMicros: account.balanceMicros, repeated: false };
+    await txn.put(accountKey(keyHash), account);
+    await txn.put(sessionKey(grant.sessionId), { key, keyHash, credits: grant.credits, at } satisfies SessionRecord);
+    return { key, credits: grant.credits, balanceMicros: account.balanceMicros, repeated: false };
   });
 }
 
@@ -277,6 +323,12 @@ export async function rotateKey(storage: CreditStorage, oldHash: string, newKey:
   return storage.transaction(async (txn) => {
     const account = await txn.get<Account>(accountKey(oldHash));
     if (!account || oldHash === newHash) return null;
+    // A top-up or a refund that is on its way to the old key finds the account through these (currentHash above).
+    // Every earlier hash points straight at the new one; beyond MOVED_KEPT the oldest pointer is removed.
+    const before = [...(account.movedFrom ?? []), oldHash];
+    for (const gone of before.splice(0, Math.max(0, before.length - MOVED_KEPT))) await txn.delete(movedKey(gone));
+    for (const hash of before) await txn.put(movedKey(hash), newHash);
+    account.movedFrom = before;
     await txn.put(accountKey(newHash), account);
     await txn.delete(accountKey(oldHash));
     // A free key's e-mail record follows the account and stops showing the old key.
@@ -319,10 +371,15 @@ export async function spendCredits(storage: CreditStorage, keyHash: string, micr
   });
 }
 
-export async function refundCredits(storage: CreditStorage, keyHash: string, micros: number, freeCall = false): Promise<number> {
+/**
+ * Gives a failed call's price back. A key that was replaced while the call ran is followed to its current hash, so
+ * the credits return to the account they were taken from instead of being lost.
+ */
+export async function refundCredits(storage: CreditStorage, givenHash: string, micros: number, freeCall = false): Promise<number> {
   return storage.transaction(async (txn) => {
-    const account = await txn.get<Account>(accountKey(keyHash));
-    if (!account) return 0;
+    const keyHash = await currentHash(txn, givenHash);
+    const account = keyHash === null ? undefined : await txn.get<Account>(accountKey(keyHash));
+    if (!account || keyHash === null) return 0;
     if (freeCall) {
       // A failed call that used one of the month's free calls gives it back; no credits moved.
       if (account.free && account.free.used > 0) account.free.used--;
@@ -404,7 +461,7 @@ export async function verifyCheckout(stripeKey: string | undefined, sessionId: s
     // The monthly plan: the checkout paid the subscription's first invoice. Renewals are read later (paidPlanInvoices).
     const plan = priced(CREDIT_PLANS);
     if (usdTotal === undefined || !plan || !isSubscriptionId(s.subscription) || !isInvoiceId(s.invoice)) throw new CheckoutError(400, "this checkout is not a credits plan");
-    return { usdCents: plan.usdCents as number, credits: plan.credits as number, topUpKeyHash, plan: { subscriptionId: s.subscription, invoiceId: s.invoice } };
+    return { usdCents: plan.usdCents, credits: plan.credits, topUpKeyHash, plan: { subscriptionId: s.subscription, invoiceId: s.invoice } };
   }
   const pack = priced(CREDIT_PACKS);
   if (usdTotal === undefined || !pack) throw new CheckoutError(400, "this checkout is not a credits purchase");

@@ -152,7 +152,7 @@ test('what the texts say about free calls, prices, approvals and counts is what 
   assert.equal(limit / high, 10);
   assert.ok(flat(readme).includes('asks after ten `call_tool` calls'));
   assert.ok(flat(skill).includes(`counts every \`call_tool\` call as ${high} and stops to ask when one chat has reached ${limit}`));
-  for (const text of [skill, readme]) assert.match(flat(text), /first 25 successful `call_tool` calls/);
+  for (const text of [skill, readme]) assert.match(flat(text), /first 10 successful `call_tool` calls/);
   // Rule 13 of the catalog: network, money, approvals, credentials and stored data are each disclosed.
   for (const heading of ['**Network.**', '**Money.**', '**Approvals.**', '**Credentials.**', '**What the service keeps.**', '**No telemetry, no background process, no self-update.**']) assert.ok(readme.includes(heading), heading);
 });

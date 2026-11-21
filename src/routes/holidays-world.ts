@@ -7,6 +7,8 @@
  */
 import { HttpError } from "../lib/env";
 import { COUNTRIES, holidaysFor } from "./holidays";
+import { API_UA } from "../lib/outbound-ua";
+import { jsonWithin } from "../lib/source-json";
 
 export interface Holiday { date: string; localName: string; name: string; nationwide: boolean; types: string[]; observed: string | null }
 const cache = new Map<string, { at: number; list: Holiday[] | null }>();
@@ -19,7 +21,7 @@ export async function nagerHolidays(country: string, year: number): Promise<Holi
   if (hit && Date.now() - hit.at < TTL) return hit.list;
   let res: Response;
   try {
-    res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(8_000) });
+    res = await fetch(`https://date.nager.at/api/v3/PublicHolidays/${year}/${country}`, { headers: { accept: "application/json", "user-agent": API_UA }, signal: AbortSignal.timeout(8_000) });
   } catch {
     throw new HttpError(502, "the holiday calendar source did not answer in time; try again");
   }
@@ -28,7 +30,7 @@ export async function nagerHolidays(country: string, year: number): Promise<Holi
   let rows: Row[] | null = null;
   if (res.status !== 204 && res.status !== 404) {
     if (!res.ok) throw new HttpError(502, `the holiday calendar source answered HTTP ${res.status}; try again`);
-    rows = (await res.json().catch(() => null)) as Row[] | null;
+    rows = (await jsonWithin(res).catch(() => null)) as Row[] | null;
   } else await res.body?.cancel().catch(() => {});
   const list = Array.isArray(rows) ? (rows as Row[]).map((r: Row) => ({ date: r.date, localName: r.localName, name: r.name, nationwide: !!r.global, types: r.types ?? ["Public"], observed: null })) : null;
   if (cache.size > 500) cache.clear();

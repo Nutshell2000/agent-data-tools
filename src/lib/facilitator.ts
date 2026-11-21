@@ -34,7 +34,13 @@ function withResilientSupported(client: HTTPFacilitatorClient, store?: Supported
       }
       throw lastError;
     };
-  client.verify = retrying(client.verify.bind(client), 4);
+  // Verify gets our own deadline (21 Nov 2026). The client library waits up to 90 seconds for any facilitator call,
+  // far longer than a buyer's client waits for an answer, so a facilitator that hung held the request open with
+  // nothing to show for it. Verify only checks a signature and a balance: it moves no money, so giving up on it is
+  // safe, and every payment path already answers a failed verify as "temporarily unavailable, you were not charged".
+  // Settle is deliberately NOT cut short here: a settle that is abandoned may still go through, and then nobody
+  // knows whether the buyer paid. It keeps the library's own 90-second limit.
+  client.verify = retrying(withDeadline(client.verify.bind(client), VERIFY_TIMEOUT_MS, "verify"), 4);
   const settle = retrying(client.settle.bind(client), 4);
   client.settle = ((payload: unknown, requirements: unknown) => settle(...(withoutQuery(payload, requirements) as Parameters<typeof settle>))) as typeof client.settle;
 
@@ -79,6 +85,17 @@ function withResilientSupported(client: HTTPFacilitatorClient, store?: Supported
     throw lastError;
   };
   return client;
+}
+
+/** How long one verify request may take. A normal one answers in well under a second. */
+export const VERIFY_TIMEOUT_MS = 10_000;
+
+/** `call`, rejected after `ms` when it has not settled by then. The message is not a facilitator reason code, so every caller reads it as an outage. */
+export function withDeadline<A extends unknown[], R>(call: (...args: A) => Promise<R>, ms: number, what: string): (...args: A) => Promise<R> {
+  return (...args: A) => new Promise<R>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(`Facilitator ${what} timed out after ${ms} ms`)), ms);
+    call(...args).then((value) => { clearTimeout(timer); resolve(value); }, (err) => { clearTimeout(timer); reject(err); });
+  });
 }
 
 const durableKey = (url: string) => `facilitator-supported:${url}`;

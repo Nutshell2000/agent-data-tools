@@ -5,7 +5,8 @@
 //   1. Commerce. A plugin may not sell digital services or credits, "directly or indirectly (for example, through
 //      freemium upsells)", and trial plugins are not accepted. So inside ChatGPT the service is free: a daily allowance
 //      per signed-in user, no credits, no key, no price, no plan, no link to our checkout. Only tools that cost us nothing
-//      per call are here (nothing in CAPACITY_LIMITED: no AI model, no browser, no Brave search).
+//      per call are here (nothing in FREE_EXCLUDED_METERED, lib/capacity.ts: no AI model, no browser, no Brave search;
+//      src/mcp.ts filters the list by it and tests/free-metered.test.cjs holds it).
 //   2. Annotations must match behaviour. Nothing here writes: every tool is read-only and non-destructive
 //      (annotationsFor in src/mcp-contract.ts sets open-world or closed-world per tool).
 //   3. Restricted data. No tool takes payment-card numbers, health details, government identifiers, passwords, keys or
@@ -34,7 +35,8 @@ export const CHATGPT_TOOLS: ReadonlySet<string> = new Set([
   "/domain", "/domain-report", "/domain/availability", "/dns/lookup", "/dns/propagation", "/http/security-headers", "/url/redirects", "/url/uptime",
   "/robots", "/sitemap", "/url/meta", "/url/favicon", "/tech/stack", "/seo/audit", "/pack/website-audit", "/agent-readiness", "/openapi/summary", "/mcp/inspect",
   // Documents and references
-  "/pdf/text", "/feed", "/papers", "/wikipedia", "/book/isbn", "/book/search",
+  // /papers left on 21 Nov 2026: its title guess can call a model, and nothing metered runs free (lib/capacity.ts).
+  "/pdf/text", "/feed", "/wikipedia", "/book/isbn", "/book/search",
   // Software packages and repositories (npm, PyPI, OSV, GitHub repository data)
   "/package", "/package-audit", "/github/repo", "/github/search", "/github/releases", "/npm/downloads", "/pypi", "/dockerfile/lint", "/semver", "/cron/next",
   // Public blockchain state: balances, prices from on-chain pools, transactions. Reads only; nothing is signed or sent.

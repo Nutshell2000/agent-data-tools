@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "build:reader": "npm run build:contracts && node scripts/build-reader-assets.mjs",
-    "test": "npm run check:output-validators && node scripts/build-reader-assets.mjs && node --test --test-concurrency=1 tests/*.test.cjs scripts/*.test.mjs",
+    "test": "npm run check:output-validators && node scripts/build-reader-assets.mjs && node --require ./scripts/test-quiet.cjs --test --test-concurrency=1 tests/*.test.cjs scripts/*.test.mjs",
+    "test:changed": "node scripts/test-changed.mjs",
     "check:mcp-contract": "node scripts/check-mcp-contract.mjs",
     "update:mcp-contract": "node scripts/check-mcp-contract.mjs --update",
     "export:guides": "node scripts/export-buying-guides.mjs",

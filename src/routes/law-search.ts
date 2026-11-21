@@ -168,22 +168,10 @@ export function prior(row: Pick<LawRow, "kind" | "heading" | "short">, words: Re
   return (row.kind === "article" ? 0.06 : 0) + (words.size ? 0.04 * Math.min(1, hits / Math.min(words.size, 3)) : 0) + (act?.prior ?? 0);
 }
 
-/** Bindings-backed dependencies: D1 for keywords and rows, Vectorize for meaning, Workers AI for embeddings and reranking. */
-export function lawDeps(env: Env): LawDeps {
-  const db = env.LAW_DB, index = env.LAW_VECTORS;
-  if (!db || !index) throw new HttpError(503, "the EU law index is not available here; nothing was charged");
+/** The part of the dependencies that reads D1 only: keywords (FTS5), rows and the same provisions in another language. */
+function lawTextDeps(db: D1Database): Pick<LawDeps, "keywords" | "rows" | "localized"> {
   const where = (filter: { short?: string; kind?: string }, alias = "p") => [filter.short ? `${alias}.short = ?` : "", filter.kind ? `${alias}.kind = ?` : ""].filter(Boolean);
   return {
-    async embed(q) {
-      const out = await runAi<{ data?: number[][] }>(env, EMBED_MODEL, { text: [q.slice(0, 2000)] });
-      const v = out.data?.[0];
-      if (!v?.length) throw new HttpError(502, "the embedding model gave no vector; nothing was charged");
-      return v;
-    },
-    async vectors(v, topK, filter) {
-      const r = await index.query(v, { topK, returnMetadata: "none", ...(filter.short || filter.kind ? { filter: { ...(filter.short ? { short: filter.short } : {}), ...(filter.kind ? { kind: filter.kind } : {}) } } : {}) });
-      return r.matches.map((m) => m.id);
-    },
     async keywords(match, limit, filter) {
       const conds = where(filter);
       const r = await db.prepare(`SELECT f.id AS id FROM passages_fts f JOIN passages p ON p.id = f.id WHERE passages_fts MATCH ?${conds.length ? ` AND ${conds.join(" AND ")}` : ""} ORDER BY bm25(passages_fts, 0, 1.0, 4.0, 3.0, 1.0) LIMIT ?`)
@@ -194,18 +182,48 @@ export function lawDeps(env: Env): LawDeps {
       const r = await db.prepare(`SELECT * FROM passages WHERE id IN (${ids.map(() => "?").join(",")})`).bind(...ids).all<LawRow>();
       return r.results ?? [];
     },
+    async localized(provisions, lang) {
+      const keys = [...new Set(provisions.map((p) => `${p.short}|${p.label}`))].slice(0, 20);
+      if (!keys.length) return [];
+      const r = await db.prepare(`SELECT * FROM passages WHERE lang = ? AND (short || '|' || label) IN (${keys.map(() => "?").join(",")})`).bind(lang, ...keys).all<LawRow>();
+      return r.results ?? [];
+    },
+  };
+}
+
+/**
+ * Keyword-only dependencies (21 Nov 2026), for the free LexGlyph page: D1 full-text search and nothing metered. No
+ * embedding, no Vectorize query, no reranker and no translation of the question, so lawSearch returns the BM25 order
+ * and a question finds what shares its words (English text, and Swedish where the index holds it).
+ */
+export function lawKeywordDeps(env: Pick<Env, "LAW_DB">): LawDeps {
+  const db = env.LAW_DB;
+  if (!db) throw new HttpError(503, "the EU law index is not available here; nothing was charged");
+  return { ...lawTextDeps(db), embed: async () => [], vectors: async () => [], rerank: async () => null };
+}
+
+/** Bindings-backed dependencies: D1 for keywords and rows, Vectorize for meaning, Workers AI for embeddings and reranking. */
+export function lawDeps(env: Env): LawDeps {
+  const db = env.LAW_DB, index = env.LAW_VECTORS;
+  if (!db || !index) throw new HttpError(503, "the EU law index is not available here; nothing was charged");
+  return {
+    ...lawTextDeps(db),
+    async embed(q) {
+      const out = await runAi<{ data?: number[][] }>(env, EMBED_MODEL, { text: [q.slice(0, 2000)] });
+      const v = out.data?.[0];
+      if (!v?.length) throw new HttpError(502, "the embedding model gave no vector; nothing was charged");
+      return v;
+    },
+    async vectors(v, topK, filter) {
+      const r = await index.query(v, { topK, returnMetadata: "none", ...(filter.short || filter.kind ? { filter: { ...(filter.short ? { short: filter.short } : {}), ...(filter.kind ? { kind: filter.kind } : {}) } } : {}) });
+      return r.matches.map((m) => m.id);
+    },
     async rerank(q, docs) {
       const out = await runAi<{ response?: { id: number; score: number }[] }>(env, RERANK_MODEL, { query: q.slice(0, 1000), contexts: docs.map((text) => ({ text })), top_k: docs.length });
       return (out.response ?? []).map((r) => ({ index: r.id, score: r.score }));
     },
     async translate(q) {
       return chat(env, "Translate the user's question about EU law into English. Keep act names, article numbers and legal terms exact. Reply with the English question only.", q.slice(0, 400), 160, 0, CHAT_MODEL);
-    },
-    async localized(provisions, lang) {
-      const keys = [...new Set(provisions.map((p) => `${p.short}|${p.label}`))].slice(0, 20);
-      if (!keys.length) return [];
-      const r = await db.prepare(`SELECT * FROM passages WHERE lang = ? AND (short || '|' || label) IN (${keys.map(() => "?").join(",")})`).bind(lang, ...keys).all<LawRow>();
-      return r.results ?? [];
     },
   };
 }

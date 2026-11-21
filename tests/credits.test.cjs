@@ -171,8 +171,8 @@ test('paywall charges a key per successful call and refunds failed calls', async
   const balance = await res.json();
   const { since, topUp, monthlyPlans, ...rest } = balance;
   assert.deepEqual(rest, { balanceCredits: 1, purchasedCredits: 5, spentCredits: 4, calls: 2 });
-  // A key without a plan is offered the monthly plans, each link naming this key so the plan tops it up (11 Nov 2026).
-  assert.deepEqual(monthlyPlans.map((p) => [p.price, p.creditsEachMonth]), [['$3 a month', 15000], ['$19 a month', 40000]]);
+  // A key without a plan is offered the developer plans (never the voice site's), each link naming this key so the plan tops it up.
+  assert.deepEqual(monthlyPlans.map((p) => [p.price, p.creditsEachMonth]), [['$3 a month', 3000], ['$19 a month', 19000]]);
   for (const p of monthlyPlans) assert.match(p.buy, new RegExp(`^https://buy\\.stripe\\.com/[A-Za-z0-9]+\\?client_reference_id=topup_${await credits.hashCreditKey(key)}$`));
   assert.equal(topUp.length, 4);
   for (const l of topUp) assert.ok(l.buy.endsWith(`?client_reference_id=topup_${await credits.hashCreditKey(key)}`));
@@ -203,7 +203,8 @@ test('/credits page for people: packs with calls per pack, app setup, free previ
   assert.match(html, /about 100–1,000 calls depending on the tool/);
   assert.match(html, /\/mcp\/account/);
   assert.match(html, /\/check\/counterparty\?sample=1/);
-  assert.match(html, /3 calls from a browser or plain HTTP, 25 through an AI app/);
+  // The free calls: the numbers, the kind of tool they run, and that the rest is paid (21 Nov 2026).
+  assert.match(html, /Try the tools that only compute or look up public data free first, with no card: 3 calls from a browser or plain HTTP, 10 through an AI app \(MCP\); not AI, speech, transcription, images, rendering, search or resold data\. Everything else is prepaid or paid per call\./);
   assert.doesNotMatch(html, /noindex/);
   assert.match(html, /<main>.*One API key/s, 'the page has a main landmark');
   assert.match(html, /<meta name="description" content="API credits by card/);
@@ -224,19 +225,22 @@ test('/credits/claim waits for the Stripe key instead of issuing anything', asyn
   assert.equal(s.records.size, 0);
 });
 
-test('free calls: 25 per caller, a daily total cap, refunds restore the allowance', async () => {
+test('free calls: 10 per caller, a daily total cap of 500, refunds restore the allowance', async () => {
   const free = await load(require.resolve('../src/lib/free-calls.ts'));
+  // The owner's numbers of 21 Nov 2026 ("very minimal free calls").
+  assert.equal(free.FREE_CALLS_PER_CALLER, 10);
+  assert.equal(free.FREE_CALLS_PER_DAY, 500);
   const s = storage();
   const left = [];
-  for (let i = 0; i < 26; i++) left.push(await free.takeFreeCall(s, 'a', '2026-10-19'));
-  assert.equal(left[0], 24);
-  assert.equal(left[24], 0);
-  assert.equal(left[25], null);
+  for (let i = 0; i < 11; i++) left.push(await free.takeFreeCall(s, 'a', '2026-10-19'));
+  assert.equal(left[0], 9);
+  assert.equal(left[9], 0);
+  assert.equal(left[10], null);
   await free.refundFreeCall(s, 'a', '2026-10-19');
   assert.equal(await free.takeFreeCall(s, 'a', '2026-10-19'), 0);
   s.records.set('free:day:2026-10-20', free.FREE_CALLS_PER_DAY);
   assert.equal(await free.takeFreeCall(s, 'b', '2026-10-20'), null);
-  assert.equal(await free.takeFreeCall(s, 'b', '2026-10-21'), 24);
+  assert.equal(await free.takeFreeCall(s, 'b', '2026-10-21'), 9);
   assert.notEqual(await free.callerHash('1.2.3.4'), '1.2.3.4');
   assert.match(await free.callerHash('1.2.3.4'), /^[0-9a-f]{64}$/);
 });
@@ -299,7 +303,13 @@ test('new-key claim page offers top-up links for that same key', async () => {
   try {
     globalThis.fetch = async () => new Response(JSON.stringify(paid));
     const html = await (await app({ METRICS: metricsFor(s), STRIPE_READ_KEY: 'rk_test_key' }).fetch('/credits/claim?session_id=cs_live_NewKey000001', { accept: 'text/html' })).text();
-    const key = /<pre>(adt_[A-Za-z0-9_-]+)<\/pre>/.exec(html)[1];
+    const key = /<pre id="gc-key">(adt_[A-Za-z0-9_-]+)<\/pre>/.exec(html)[1];
+    // 21 Nov 2026: the key can be copied and saved as a file, made in the browser (nothing is sent anywhere).
+    assert.match(html, /data-ev="key_copy"/);
+    assert.match(html, /data-ev="key_download"/);
+    assert.match(html, /a\.download="glyphcall-key\.txt"/);
+    const keyScript = /<script data-gc-key>([\s\S]*?)<\/script>/.exec(html)[1];
+    assert.doesNotThrow(() => new Function(keyScript), 'the copy/download script parses');
     assert.ok(html.includes(`client_reference_id=topup_${await credits.hashCreditKey(key)}`));
     // 19 Nov 2026: the claim page builds a working command from the visitor's own console text, with no injection.
     assert.match(html, /<pre id="reuse">/, 'the claim page has a reuse slot');

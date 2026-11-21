@@ -32,7 +32,7 @@ What we found, across {answered402} sellers that answered with a 402:
 
 **Check your own listing.**
 - Call `/x402/check?url=<your endpoint>` on https://agent-data-tools.revmesh2074.workers.dev. It costs $0.003, never signs, and is also available as the `x402_check` MCP tool.
-- The first 25 calls over MCP are free.
+- The first 10 calls over MCP are free on tools that only compute or look up public data (not AI, speech, transcription, images, rendering, search or resold data).
 
 ---
 

@@ -4,6 +4,8 @@
 // labelled with its capture date. Only for an unavailable target: a page that refuses us (401/403/451) or is missing
 // (404/410) is never fetched from the archive, so this is no way around a site's access decision.
 import { fetchPublic, parseTarget } from "./fetch";
+import { FETCH_UA } from "./outbound-ua";
+import { jsonWithin } from "./source-json";
 
 const CDX = "https://web.archive.org/cdx/search/cdx";
 
@@ -31,9 +33,9 @@ export async function archivedCopy(target: URL, accept: string, { budgetMs = 8_0
   const lookup = `${CDX}?${new URLSearchParams({ url: target.href, output: "json", fl: "timestamp,original", limit: "-1" })}&filter=statuscode:200&filter=mimetype:${encodeURIComponent(mime)}`;
   let rows: unknown;
   try {
-    const r = await fetcher(lookup, { headers: { accept: "application/json", "user-agent": "Mozilla/5.0 (compatible; AgentDataTools/1.0)" }, signal: AbortSignal.timeout(Math.max(1_000, Math.min(4_000, deadline - Date.now()))) });
+    const r = await fetcher(lookup, { headers: { accept: "application/json", "user-agent": FETCH_UA }, signal: AbortSignal.timeout(Math.max(1_000, Math.min(4_000, deadline - Date.now()))) });
     if (!r.ok) return null;
-    rows = await r.json();
+    rows = await jsonWithin(r, 1024 * 1024);
   } catch {
     return null;
   }

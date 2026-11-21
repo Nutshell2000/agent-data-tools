@@ -18,9 +18,15 @@
  * No page of this service is meant to be shown inside a frame on another site (checked on 21 Nov 2026: no page builder
  * writes a frame, and no route answers for an embed), so nothing is exempt.
  *
- * Status, body and every header a route wrote stay as they are: a 402 quote keeps its status, PAYMENT-REQUIRED and
+ * One exception to "only when the route did not set it": a request whose address holds an API key (`?api_key=` or
+ * `/mcp/k/<key>`, lib/url-keys.ts) is answered with `Referrer-Policy: no-referrer` whatever the content type and
+ * whatever the route chose, so a browser never passes that address on to another site.
+ *
+ * Status, body and every other header a route wrote stay as they are: a 402 quote keeps its status, PAYMENT-REQUIRED and
  * WWW-Authenticate byte for byte, with one small header more.
  */
+import { urlCarriesKey } from "./url-keys";
+
 export const DEFAULT_REFERRER_POLICY = "strict-origin-when-cross-origin";
 
 /** The header names this module may add. Nothing else is ever written, and none of them is ever replaced. */
@@ -44,9 +50,15 @@ export function missingSafetyHeaders(headers: Headers): [string, string][] {
   return add;
 }
 
-/** The same answer with the missing safety headers; the very same object when nothing is missing. */
-export function withSafetyHeaders(response: Response): Response {
-  const add = missingSafetyHeaders(response.headers);
+/**
+ * The same answer with the missing safety headers; the very same object when nothing is missing. With the request's
+ * address, an answer to a request that carried an API key in it also gets `Referrer-Policy: no-referrer`.
+ */
+export function withSafetyHeaders(response: Response, requestUrl?: string): Response {
+  let add = missingSafetyHeaders(response.headers);
+  if (requestUrl && urlCarriesKey(requestUrl) && (response.headers.get("referrer-policy") ?? "").trim().toLowerCase() !== "no-referrer") {
+    add = [...add.filter(([name]) => name !== "Referrer-Policy"), ["Referrer-Policy", "no-referrer"]];
+  }
   if (!add.length) return response;
   try {
     for (const [name, value] of add) response.headers.set(name, value);

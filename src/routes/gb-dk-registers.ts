@@ -12,8 +12,9 @@
 import { jsonCapped } from "../lib/read-capped";
 import { HttpError, type Env } from "../lib/env";
 import { rankByName } from "./cz-ee-company";
+import { API_UA } from "../lib/outbound-ua";
 
-const UA = "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)";
+const UA = API_UA;
 export const GB_SOURCE = "Companies House (UK), Open Government Licence v3.0";
 export const DK_SOURCE = "CVR, Danish Business Authority (Erhvervsstyrelsen)";
 

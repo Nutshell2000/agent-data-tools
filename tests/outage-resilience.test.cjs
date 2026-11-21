@@ -1,6 +1,14 @@
 const assert = require('node:assert/strict');
-const { test } = require('node:test');
+const { test, before, after } = require('node:test');
 const { build } = require('esbuild');
+
+// 21 Nov 2026: every test here makes the store throw on purpose, and the code under test logs that error with its
+// stack (about 30 lines a run in the full suite's log, which read like real failures). The log calls are collected
+// while the tests run instead of printed; what the tests assert is unchanged. ADT_TEST_VERBOSE=1 prints them again.
+const logged = [];
+const realConsoleError = console.error;
+before(() => { if (process.env.ADT_TEST_VERBOSE !== '1') console.error = (...args) => { logged.push(args); }; });
+after(() => { console.error = realConsoleError; });
 
 // The Durable Object behind credits, replay and receipts can be out of its daily quota: every call throws. Payment
 // paths must then refuse before charging or running anything, with a retryable 503, never a 500 or a lost payment.

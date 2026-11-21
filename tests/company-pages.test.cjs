@@ -71,11 +71,15 @@ test("the public pages carry the company line; the product name and the agent ca
 });
 
 test("buyer trust pages /contact, /refunds and /faq render with the real refund rule and free-call counts", async () => {
-  for (const [path, needle] of [["/contact", "mailto:"], ["/refunds", "Unused credits"], ["/faq", "trial=1"]]) {
+  for (const [path, needle] of [["/contact", "mailto:"], ["/refunds", "Purchases are final"], ["/faq", "trial=1"]]) {
     const r = await get(path);
     assert.equal(r.status, 200, path);
     assert.match(await r.text(), new RegExp(needle), path);
   }
-  assert.match(L.REFUNDS_HTML, /Used credits are not refundable/);
+  // 21 Nov 2026: purchases are final (the buyer agrees to immediate delivery at checkout); an undelivered purchase is put right.
+  assert.match(L.REFUNDS_HTML, /Purchases are final/);
+  assert.match(L.REFUNDS_HTML, /give up the 14-day right of withdrawal/);
+  assert.match(L.REFUNDS_HTML, /deliver it or return the payment/);
+  assert.doesNotMatch(L.REFUNDS_HTML + L.FAQ_HTML, /refunded on request|refundable on request/);
   assert.ok(L.FAQ_HTML.includes("href=\"/refunds\""), "FAQ links the refund rule");
 });

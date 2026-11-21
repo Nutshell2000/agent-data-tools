@@ -3,6 +3,12 @@ import { mkdir, writeFile, copyFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { READER_SAMPLES, READER_DIAGRAM, READER_MARKDOWN } from "../examples/reader-samples.mjs";
+import { installShortStacks } from "./short-stack.mjs";
+
+// 21 Nov 2026: this script imports its bundles through data: URLs (below), and an error thrown inside one carried
+// the whole 13 MB address in every stack frame: one failing run printed 39 MB into the test log. An error that ends
+// the script is now printed as its message and the frames outside the bundle; the script still exits 1.
+installShortStacks("build-reader-assets");
 
 const origin = "https://agent-data-tools.revmesh2074.workers.dev";
 const { version } = JSON.parse(

@@ -5,7 +5,7 @@ Buy one structured result using an existing funded x402 wallet. No service accou
 | Operation | Existing API | Required flags | Maximum per invocation |
 | --- | --- | --- | --- |
 | `tx` | `/base-tx` | `--hash` | $0.003 |
-| `wallet` | `/wallet` | `--address` | $0.005 |
+| `wallet` | `/wallet` | `--address` | $0.01 |
 | `gas` | `/base-gas` | none | $0.002 |
 | `allowance` | `/base-allowance` | `--token`, `--owner`, `--spender` | $0.002 |
 
@@ -64,7 +64,7 @@ Inspect `ok`, `paymentStatus`, `result.status`, `result.confirmations`, `result.
 
 `pending` is inconclusive; upstream receipt availability may also be incomplete. Do not start a paid polling loop. A future check is a separate purchase requiring a task reason and spending authorization.
 
-## Workflow 2: inspect a wallet before a transaction — maximum $0.005 for the wallet snapshot
+## Workflow 2: inspect a wallet before a transaction — maximum $0.01 for the wallet snapshot
 
 Replace the illustrative public address with the wallet the buyer deliberately chooses. No wallet is connected by these commands.
 
@@ -74,7 +74,7 @@ POSIX shell:
 wallet_address='0x4200000000000000000000000000000000000006'
 node chain-client.mjs quote wallet --address "$wallet_address"
 # Optional explicit purchase of this snapshot only:
-node chain-client.mjs buy wallet --address "$wallet_address" --max-usdc 0.005
+node chain-client.mjs buy wallet --address "$wallet_address" --max-usdc 0.01
 ```
 
 PowerShell:
@@ -83,7 +83,7 @@ PowerShell:
 $walletAddress = '0x4200000000000000000000000000000000000006'
 node ./chain-client.mjs quote wallet --address $walletAddress
 # Optional explicit purchase of this snapshot only:
-node ./chain-client.mjs buy wallet --address $walletAddress --max-usdc 0.005
+node ./chain-client.mjs buy wallet --address $walletAddress --max-usdc 0.01
 ```
 
 The wallet response includes native ETH and a bounded selection of tokens. **Missing token rows are not proof of zero balance**; some token reads may have failed or the token may be outside the checked set. This is not complete portfolio or transaction history. Concurrent reads need not form an atomic snapshot. Account nonce is not full payment or trading history.
@@ -124,7 +124,7 @@ node ./chain-client.mjs buy allowance --token $tokenAddress --owner $ownerAddres
 
 `approved: true` means positive allowance, not sufficient allowance for the intended amount. Compare the raw amount using the token's decimals; do not infer permission to trade or transfer. The client never sends an approval.
 
-Wallet plus both optional checks costs at most **$0.009**, if separately authorized. A later transaction-status purchase adds at most **$0.003**. These are alternatives and optional steps, not a sequence the client executes for you.
+Wallet plus both optional checks costs at most **$0.014**, if separately authorized. A later transaction-status purchase adds at most **$0.003**. These are alternatives and optional steps, not a sequence the client executes for you.
 
 ## Interpret the outcome before another purchase
 

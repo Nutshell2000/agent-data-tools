@@ -7,10 +7,10 @@
 // Every number and price here comes from the catalog or a constant; nothing is typed.
 import { ENDPOINTS, SERVICE_ID, SERVICE_NAME, SUPPORT_EMAIL, exampleParams, type Endpoint } from "../endpoints";
 import { httpFree } from "./capacity";
-import { CREDIT_PACKS, CREDIT_PLANS, FREE_KEY_CALLS, USDC_PACKS, usdcPackPath } from "./credits";
+import { CREDIT_PACKS, CREDIT_PLANS, USDC_PACKS, VOICE_PRO_CENTS, WEB_PLANS, usdcPackPath } from "./credits";
 import { PRODUCTS } from "./product-pages";
 import { salesFirstPaths } from "./discovery-index";
-import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY, FREE_HTTP_CALLS_PER_CALLER, HTTP_FREE_EXCLUDED } from "./free-calls";
+import { FREE_CALLS_PER_CALLER, FREE_CALLS_PER_DAY, FREE_HTTP_CALLS_PER_CALLER, FREE_KEY_CALLS_PER_MONTH as FREE_KEY_CALLS, FREE_NOT_FOR, FREE_REST_PAID, FREE_TOOLS_KIND, HTTP_FREE_EXCLUDED } from "./free-calls";
 import { NETWORK_NAMES, SOLANA_NETWORK } from "./networks";
 
 /** Where the full service card (every tool with its inputs) lives now that "/" answers programs with a short one. */
@@ -57,7 +57,7 @@ const networkNames = (networks: readonly string[]) => networks.map((n) => (n ===
 const [starter] = CREDIT_PACKS;
 const usdcLead = USDC_PACKS.find((p) => p.usdCents === 500) ?? USDC_PACKS[0];
 const WHAT = "pay-per-call tools for AI agents and developers, over plain HTTP and MCP: speech to text and text to speech, PDFs, documents and web pages to clean text, web search, EU law, company, VAT and sanctions checks, crypto and market data, AI text tools and small utilities";
-const excludedFromTrial = `web search and news, the larger AI models and the tools built on them (answers, fact checks, audits), image generation and description, speech and transcription, browser rendering and screenshots, page publishing, and resold LinkedIn and X data; over HTTP also ${[...HTTP_FREE_EXCLUDED].join(" and ")}`;
+const excludedFromTrial = `every AI tool (chat, summaries, translation, embeddings, moderation, rerank, the larger models and the tools built on them: answers, fact checks, audits, document OCR and field extraction), image generation and description, speech and transcription, browser rendering and screenshots, web search and news, paper search, EU law search, page publishing, signed answers, and resold LinkedIn and X data; over HTTP also ${[...HTTP_FREE_EXCLUDED].join(" and ")}`;
 
 /** /llms.txt: what this is, a first call that works, how to pay, a dozen tools, where the rest is. Under 8 KB. */
 export function llmsShortTxt(origin: string, f: FirstCallFacts): string {
@@ -78,8 +78,8 @@ export function llmsShortTxt(origin: string, f: FirstCallFacts): string {
       "```json",
       call.output,
       "```",
-      `Add trial=1 to a GET request: every caller gets ${FREE_HTTP_CALLS_PER_CALLER} free successful calls over HTTP. An MCP client gets ${FREE_CALLS_PER_CALLER}, used automatically before any payment. Failed calls do not count; at most ${FREE_CALLS_PER_DAY.toLocaleString("en-US")} free calls a day in total, and the operator can switch them off.`,
-      `Not in the free calls (they use paid capacity): ${excludedFromTrial}. A tool's 402 answer starts with \`freeTrial\` and the exact URL when the free calls cover it.`,
+      `Add trial=1 to a GET request: every caller gets ${FREE_HTTP_CALLS_PER_CALLER} free successful calls over HTTP. An MCP client gets ${FREE_CALLS_PER_CALLER}, used automatically before any payment. They run ${FREE_TOOLS_KIND}. Failed calls do not count; at most ${FREE_CALLS_PER_DAY.toLocaleString("en-US")} free calls a day in total, and the operator can switch them off.`,
+      `Not in the free calls (each call costs us money): ${excludedFromTrial}. ${FREE_REST_PAID} A tool's 402 answer starts with \`freeTrial\` and the exact URL when the free calls cover it.`,
     ] : [
       `Free calls are switched off right now, so trial=1 answers the normal 402.${sample ? ` A free look at what a tool returns: add sample=1, for example ${origin}${sample.path}?${queryOf(sample)}&sample=1 (a static example, not a live run).` : ""}`,
     ]),
@@ -88,7 +88,7 @@ export function llmsShortTxt(origin: string, f: FirstCallFacts): string {
     "## How to pay",
     "",
     `- Card, prepaid credits: ${origin}/credits (from $${starter.usdCents / 100} for ${starter.credits.toLocaleString("en-US")} credits; 1 credit = $${(starter.usdCents / 100 / starter.credits).toFixed(3)}). You get a key: send it as \`Authorization: Bearer adt_…\`, \`X-API-Key\`, or \`api_key=adt_…\` in the URL. Balance: ${origin}/credits/balance`,
-    ...(f.freeKeys ? [`- Free key by e-mail: ${origin}/keys/free (${FREE_KEY_CALLS} successful calls each calendar month on every tool that does not use paid capacity; POST {"email":"you@example.com"}, open the link in the message).`] : []),
+    ...(f.freeKeys ? [`- Free key by e-mail: ${origin}/keys/free (${FREE_KEY_CALLS} successful calls each calendar month on the tools the free calls run; POST {"email":"you@example.com"}, open the link in the message).`] : []),
     `- x402, USDC per call: call any tool URL; the 402 carries the terms in the PAYMENT-REQUIRED header (x402 v2, exact scheme; ${networkNames(f.networks)}) and repeats them in the body. Sign and retry with PAYMENT-SIGNATURE. Every tool with its terms: ${origin}/.well-known/x402`,
     ...(f.mpp.length ? [`- MPP: the same 402 carries a WWW-Authenticate: Payment challenge (${f.mpp.join(", ")}); an mppx client answers it in Authorization: Payment. Details: ${origin}/llms-full.txt`] : []),
     ...(usdcLead ? [`- USDC prepaid: GET ${origin}${usdcPackPath(usdcLead)} with an x402 client pays $${usdcLead.usdCents / 100} once and returns a key with ${usdcLead.credits.toLocaleString("en-US")} credits (${USDC_PACKS.filter((p) => p !== usdcLead).map((p) => `$${p.usdCents / 100}`).join(" or ")} at ${origin}/credits/usdc/<amount>); later calls need no payment each.`] : []),
@@ -111,7 +111,8 @@ export function llmsShortTxt(origin: string, f: FirstCallFacts): string {
     `- Docs (keys, errors, sending a file): ${origin}/docs`,
     // 20 Nov 2026: an LLM reading llms.txt could not discover the focused product pages, the transcription plan or
     // the guides — the exact high-intent pages we want recommended. Name them here; derive the price from the plan.
-    `- Monthly plan, one key for every tool: from $${CREDIT_PLANS[0].usdCents / 100}/month (${CREDIT_PLANS[0].credits.toLocaleString("en-US")} credits each month); transcription plan ${origin}/transcribe-pro ($${CREDIT_PLANS[0].usdCents / 100}/month).`,
+    // WEB_PLANS is the developer plans on sale, entry plan first; the transcription plan has its own price constant.
+    ...(WEB_PLANS.length ? [`- Monthly plan, one key for every tool: from $${WEB_PLANS[0].usdCents / 100}/month (${WEB_PLANS[0].credits.toLocaleString("en-US")} credits each month); transcription plan ${origin}/transcribe-pro ($${VOICE_PRO_CENTS / 100}/month).`] : []),
     `- Focused API pages: ${PRODUCTS.map((p) => `${p.name} ${origin}/${p.slug}`).join("; ")}`,
     `- Guides by job: ${origin}/guides`,
     `- Support: ${SUPPORT_EMAIL}`,
@@ -126,7 +127,7 @@ export function rootCard(origin: string, f: FirstCallFacts & { payTo: string }) 
     name: f.brand,
     id: SERVICE_ID,
     description: `${f.brand}, by SpellzCode: pay-per-call tools for AI agents and developers over HTTP and MCP. One GET per tool, JSON back, a fixed price, failed calls never charged.`,
-    ...(call ? { firstCall: { what: `No key, no wallet: add trial=1 to a GET. ${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller over HTTP, ${FREE_CALLS_PER_CALLER} over MCP; not for tools that use paid capacity (a tool's 402 starts with freeTrial when it is covered).`, url: call.url } } : {}),
+    ...(call ? { firstCall: { what: `No key, no wallet: add trial=1 to a GET. ${FREE_HTTP_CALLS_PER_CALLER} free successful calls per caller over HTTP, ${FREE_CALLS_PER_CALLER} over MCP, on ${FREE_TOOLS_KIND}: ${FREE_NOT_FOR} (a tool's 402 starts with freeTrial when it is covered).`, url: call.url } } : {}),
     findATool: `${origin}/find?need=<the job in plain words>`,
     pay: {
       card: `${origin}/credits`,

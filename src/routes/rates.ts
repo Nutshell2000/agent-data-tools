@@ -1,7 +1,8 @@
 import { HttpError } from "../lib/env";
-import { sourceJson } from "../lib/source-json";
+import { sourceJson, sourceShape } from "../lib/source-json";
+import { API_UA } from "../lib/outbound-ua";
 
-const HEADERS = { "user-agent": "AgentDataTools/1.0" };
+const HEADERS = { "user-agent": API_UA };
 const CODE = /^[A-Z]{3}$/;
 /** Currency names and signs agents send instead of ISO codes (24 Oct 2026: "US dollar", "euro", "$" were refused). */
 const CURRENCY_ALIASES: Record<string, string> = {
@@ -60,6 +61,8 @@ export async function exchangeRates(fromInput: string, toInput?: string, amountI
     "exchange rate",
     "unknown currency code; the European Central Bank publishes rates for about 30 major currencies",
   );
+  // 21 Nov 2026: an answer without the table of rates was our 500 (lib/source-json.ts).
+  sourceShape(data, "the exchange rate data source", { base: "string", date: "string", rates: "object" });
   if (same) data.rates = Object.fromEntries(to.map((c) => [c, c === from ? 1 : data.rates[c]]).filter(([, r]) => r !== undefined));
   return {
     from: data.base,

@@ -1,3 +1,4 @@
+import { FREE_NOT_FOR, FREE_TOOLS_KIND } from "./lib/free-calls";
 import { FIELDS_PARAM } from "./lib/fields";
 import { FAMILIES } from "./families";
 import { ENTRY_OF } from "./routes/entry-paths";
@@ -22,7 +23,7 @@ export const SERVICE_ICON_URL = "https://agent-data-tools.revmesh2074.workers.de
 // The count that leads the summary is TOOL_COUNT, and its prices are LOWEST_PRICE and USUAL_PRICE (all below ENDPOINTS);
 // the free-call numbers are the limits free-calls.ts enforces. None of them is typed here.
 const summaryAfterCount = (lowest: string, usual: string) =>
-  ` pay-per-call tools for AI agents over HTTP or MCP, from ${lowest} a call, most at ${usual}. Free calls to start (${FREE_CALLS_PER_CALLER} over MCP, ${FREE_HTTP_CALLS_PER_CALLER} over HTTP); then pay per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.`;
+  ` pay-per-call tools for AI agents over HTTP or MCP, from ${lowest} a call, most at ${usual}. Free calls to start on ${FREE_TOOLS_KIND} (${FREE_CALLS_PER_CALLER} over MCP, ${FREE_HTTP_CALLS_PER_CALLER} over HTTP; ${FREE_NOT_FOR}); everything else and every later call is paid per call in USDC via x402 (Base, Polygon, Arbitrum, Solana) or by card with prepaid credits from /credits. No account needed; failed calls are never charged; per-tool reliability is public at /status. Crypto: token prices and wallet portfolios from Uniswap v3, chain reads on Base, Ethereum, Arbitrum, Optimism and Polygon, OFAC sanctions screening. Web: Read public static documentation, pages, PDFs and RSS feeds as clean text, plus link previews and sitemaps. Business: company profiles, domain and email checks. Also Bitcoin, FX, weather, holidays, geocoding, AI text, and JSON, date and validation utilities.`;
 
 export interface Param {
   type: "string" | "integer" | "number";
@@ -188,16 +189,26 @@ export const CORE_ENDPOINTS = [
       marketRetrievedAt: "2026-10-14T12:00:00.000Z",
       risk: "low",
       summary: "low risk: 0 high and 0 medium flag(s). Heuristic screening, not a guarantee of safety.",
-      flags: [],
-      token: { name: "Wrapped Ether", symbol: "WETH", decimals: 18 },
+      flags: [{ level: "info", code: "quote_asset", message: "This is a quote asset: DexScreener's pairs for it cover only markets where it is the base token, so volume and liquidity here understate its real trading." }],
+      token: {
+        chain: "base", chainId: 8453, address: "0x4200000000000000000000000000000000000006", name: "Wrapped Ether", symbol: "WETH", decimals: 18,
+        totalSupply: "287768197208459645179644", totalSupplyFormatted: "287768.197208459645179644", owner: null, ownershipRenounced: null, paused: null,
+        proxy: { isProxy: false, kind: null, implementation: null, admin: null }, bytecodeSize: 2041,
+        capabilities: { mint: false, burn: false, pause: false, blacklist: false, feeSetter: false, ownershipTransfer: false },
+        notes: ["capabilities are bytecode selector heuristics; a proxy's flags describe the proxy, not its implementation"], blockNumber: 37000000,
+      },
       market: {
         priceUsd: 2432.15,
         priceChange24hPct: -3.05,
         volume24hUsd: 40100383,
         liquidityUsdTotal: 4904163,
+        fdvUsd: 482832166,
+        marketCapUsd: 482832166,
         pairCount: 2,
-        topPair: { dex: "pancakeswap", quote: "USDC", ageDays: 1000 },
+        topPair: { dex: "pancakeswap", quote: "USDC", address: "0x6c561B446416E1A00E8E93E221854d6eA4171372", url: "https://dexscreener.com/base/0x6c561b446416e1a00e8e93e221854d6ea4171372", ageDays: 1000 },
         trades24h: { buys: 32010, sells: 30694 },
+        coverage: "pairs where this token is the base token only",
+        representative: false,
       },
     },
   },
@@ -214,8 +225,10 @@ export const CORE_ENDPOINTS = [
     },
     outputExample: {
       chain: "base",
+      chainId: 8453,
       address: "0x4200000000000000000000000000000000000006",
       type: "contract",
+      delegatedTo: null,
       eth: { wei: "286016330790748434767802", formatted: "286016.330790748434767802" },
       accountNonce: 0,
       limitations: [
@@ -224,6 +237,8 @@ export const CORE_ENDPOINTS = [
       tokens: [
         { address: "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913", symbol: "USDC", decimals: 6, balance: "167551481", balanceFormatted: "167.551481" },
       ],
+      tokensChecked: 8,
+      blockNumber: 37000000,
     },
   },
   {
@@ -669,6 +684,9 @@ export const CORE_ENDPOINTS = [
       verdict: "ok",
       flags: [],
       latestVersion: "4.18.1",
+      latestPublishedAt: "2026-04-01T21:01:20Z",
+      daysSinceLatestRelease: 233,
+      firstPublishedAt: "2012-04-23T16:37:12Z",
       ageDays: 5282,
       versionCount: 117,
       weeklyDownloads: 162476177,
@@ -677,6 +695,8 @@ export const CORE_ENDPOINTS = [
       knownVulnerabilities: 0,
       advisories: [],
       repository: "git+https://github.com/lodash/lodash.git",
+      homepage: "https://lodash.com/",
+      source: "deps.dev",
     },
   },
   {
@@ -695,6 +715,7 @@ export const CORE_ENDPOINTS = [
       domain: "cloudflare.com",
       domainExists: true,
       acceptsMail: true,
+      mailServers: ["mxa.global.inbound.cf-emailsecurity.net", "mxb.global.inbound.cf-emailsecurity.net"],
       disposable: false,
       roleAddress: true,
       freeProvider: false,
@@ -702,6 +723,7 @@ export const CORE_ENDPOINTS = [
       hasDmarc: true,
       verdict: "likely-deliverable",
       reasons: ["role address, not a person"],
+      note: "Checks syntax, DNS and provider lists. It does not contact the mail server, so it cannot confirm that this particular mailbox exists.",
     },
   },
   {
@@ -816,6 +838,7 @@ export const CORE_ENDPOINTS = [
       gasPriceGwei: "0.00688587",
       executionFeeEth: "0.0000007120678167",
       logCount: 2,
+      checkedAt: "2026-10-13T09:12:00.000Z",
     },
   },
   {
@@ -841,6 +864,7 @@ export const CORE_ENDPOINTS = [
       allowanceFormatted: "0",
       unlimited: false,
       approved: false,
+      checkedAt: "2026-10-13T09:12:00.000Z",
     },
   },
   {
@@ -876,6 +900,7 @@ export const CORE_ENDPOINTS = [
       hours: { type: "integer", description: "Hours of hourly forecast to return, 1-48 (default 12; 48 covers tomorrow)", example: 12 },
     },
     outputExample: {
+      place: "Stockholm",
       latitude: 59.33,
       longitude: 18.07,
       elevationM: 23,

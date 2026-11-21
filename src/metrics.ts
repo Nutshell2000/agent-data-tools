@@ -8,6 +8,8 @@ import { freeSessionSecret, takeSessionFreeCall } from "./lib/free-calls";
 import { claimReplay, swapReplay } from "./lib/mpp-store";
 import type { MetricsBatch } from "./lib/metrics-batch";
 import { FAILURE_PREFIX, REFUSED_PAYMENT } from "./lib/failure-reason";
+import { takeCapacity, giveBackCapacity, readCapacity } from "./lib/capacity-count";
+import { registerClient, markClientUsed, putExpiring, type ClientRegistration } from "./lib/oauth-clients";
 
 /**
  * What happened to a request for a paid path. "failed" is a 4xx (caller error), "errored" a 5xx (ours or upstream),
@@ -70,6 +72,35 @@ const writesBlocked = () => Date.now() < writesBlockedUntil;
 export const __test = { writesBlocked, unblockWrites: () => { writesBlockedUntil = 0; } };
 /** Distinct "path reason" failure keys kept per day; the rest count as "other" (one stored row stays far below 128 KiB). */
 const MAX_FAILURE_REASONS = 200;
+/**
+ * Distinct caller-family labels kept per day in the funnel row (21 Nov 2026). `/read/<software>` and
+ * `/caller/<software>` carry a name taken from the caller's User-Agent. Each isolate lets only a few new names
+ * through (lib/caller.ts), but there are many isolates, and this one row is written in the same transaction as every
+ * other counter: a row grown past the storage value limit would stop all counters for the day. So the row itself, the
+ * only place that sees every isolate's names, holds the exact bound: once it has this many family labels, a new one is
+ * counted under "other". Labels already in the row keep counting under their own name, and tool paths are not touched.
+ * 300 is three times the list of known software.
+ */
+export const MAX_FAMILY_LABELS = 300;
+const FAMILY_LABEL = /^(http|mcp):\/(read|caller)\/([^:]+):([a-z_]+)$/;
+/** `incoming` with every family label that would pass the day's bound renamed to its "other" label. */
+export function boundFamilyLabels(stored: Counts, incoming: Counts, max = MAX_FAMILY_LABELS): Counts {
+  let kept = 0;
+  for (const name of Object.keys(stored)) if (FAMILY_LABEL.test(name)) kept++;
+  const out: Counts = {};
+  for (const [name, value] of Object.entries(incoming)) {
+    const label = FAMILY_LABEL.exec(name);
+    let key = name;
+    if (label && !Object.hasOwn(stored, name) && !Object.hasOwn(out, name)) {
+      if (kept >= max && label[3] !== "other") key = `${label[1]}:/${label[2]}/other:${label[4]}`;
+      else kept++;
+    }
+    if (typeof value === "number") out[key] = ((Object.hasOwn(out, key) ? out[key] : 0) as number) + value;
+    else out[key] = value;
+  }
+  return out;
+}
+const bounded = (key: string, stored: Counts, counts: Counts) => (key.startsWith("funnel:day:") ? boundFamilyLabels(stored, counts) : counts);
 const capFor = (key: string) => key.startsWith("callers:") || key.startsWith("mcpclients:") ? MAX_CALLERS : key.startsWith("errors:") ? MAX_FAILURE_REASONS : undefined;
 
 /**
@@ -141,7 +172,7 @@ export class Metrics extends DurableObject {
       await this.ctx.storage.transaction(async (txn) => {
         for (const [key, counts] of batch) {
           const stored = (await txn.get<Counts>(key)) ?? {};
-          addCounts(stored, counts, capFor(key));
+          addCounts(stored, bounded(key, stored, counts), capFor(key));
           await txn.put(key, stored);
         }
         for (const [path, at] of last) await txn.put(`last:${path}`, at);
@@ -173,7 +204,7 @@ export class Metrics extends DurableObject {
     return new Map(sorted.slice(0, options.limit ?? sorted.length).map((key) => {
       const row = structuredClone(stored.get(key) ?? {});
       const extra = this.pending.get(key);
-      if (extra) addCounts(row, extra, capFor(key));
+      if (extra) addCounts(row, bounded(key, row, extra), capFor(key));
       return [key, row as T];
     }));
   }
@@ -221,6 +252,8 @@ export class Metrics extends DurableObject {
   // OAuth sign-in records (clients, codes, hashed tokens); see lib/oauth.ts. Expiry is checked by the caller.
   async oauthGet(key: string): Promise<unknown> { return (await this.ctx.storage.get(`oauth:${key}`)) ?? null; }
   async oauthPut(key: string, value: unknown) { await this.ctx.storage.put(`oauth:${key}`, value); }
+  /** A code or a hashed token: stored with its expiry and removed once it has passed (lib/oauth-clients.ts). */
+  async oauthPutExpiring(key: string, value: unknown, expiresAt: number) { await putExpiring(this.ctx.storage, `oauth:${key}`, value, expiresAt, Date.now()); }
   async oauthTake(key: string): Promise<unknown> {
     return this.ctx.storage.transaction(async (txn) => {
       const value = await txn.get(`oauth:${key}`);
@@ -228,6 +261,21 @@ export class Metrics extends DurableObject {
       return value ?? null;
     });
   }
+  // OAuth client registrations with a daily limit per address and an expiry while unused (lib/oauth-clients.ts). Called on "credits".
+  async oauthRegisterClient(registration: ClientRegistration) { return registerClient(this.ctx.storage, registration); }
+  async oauthClientUsed(clientId: string) { return markClientUsed(this.ctx.storage, clientId); }
+  // The exact daily count of a metered upstream, with the share for unpaid use (lib/capacity-count.ts). Called on
+  // "global". While the day's write allowance is used up a write would reset this object and fail the requests in
+  // flight, so it refuses at once and the caller falls back to its approximate count (lib/daily-cap.ts).
+  async capacityTake(kind: string, day: string, cap: number, unpaidCap: number | null) {
+    if (writesBlocked()) throw new Error("capacity: writes are blocked until 00:00 UTC");
+    return takeCapacity(this.ctx.storage, kind, day, cap, unpaidCap);
+  }
+  async capacityGiveBack(kind: string, day: string, unpaid: boolean) {
+    if (writesBlocked()) return;
+    return giveBackCapacity(this.ctx.storage, kind, day, unpaid);
+  }
+  async capacityUsed(kind: string, day: string) { return readCapacity(this.ctx.storage, kind, day); }
   // MPP replay state for per-call Tempo payments (lib/mpp-tempo.ts), shared by every isolate. Called on "global".
   async mppGet(key: string): Promise<unknown> { return (await this.ctx.storage.get(`mpp:${key}`)) ?? null; }
   async mppPut(key: string, value: unknown) { await this.ctx.storage.put(`mpp:${key}`, value); }

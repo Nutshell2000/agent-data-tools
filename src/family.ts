@@ -3,6 +3,8 @@
 // ENDPOINTS (endpoints.ts) and TOOLS (tools.ts), which wire the paywall, discovery and MCP.
 import type { Endpoint, Param } from "./endpoints";
 import { HttpError, type Env } from "./lib/env";
+import { jsonWithin } from "./lib/source-json";
+import { API_UA } from "./lib/outbound-ua";
 
 export type Input = (name: string) => string | undefined;
 
@@ -127,7 +129,7 @@ export function pick<T extends string>(q: Input, name: string, values: readonly 
   return hit;
 }
 
-const UA = { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)", accept: "application/json" };
+const UA = { "user-agent": API_UA, accept: "application/json" };
 
 export { retryDelayMs } from "./lib/retry";
 import { retryDelayMs } from "./lib/retry";
@@ -136,7 +138,7 @@ import { retryDelayMs } from "./lib/retry";
  * GET JSON from an outside source. Outside failures become 502 (never charged). A 429 or 503 is retried once after a
  * short wait: Workers share egress IPs, so a per-IP limit (Wikimedia) can refuse a caller who sent nothing before.
  */
-export async function getJson<T = unknown>(url: string, { timeoutMs = 8000, notFound }: { timeoutMs?: number; notFound?: string } = {}): Promise<T> {
+export async function getJson<T = unknown>(url: string, { timeoutMs = 8000, notFound, maxBytes }: { timeoutMs?: number; notFound?: string; maxBytes?: number } = {}): Promise<T> {
   let res: Response;
   try {
     const signal = AbortSignal.timeout(timeoutMs);
@@ -152,9 +154,16 @@ export async function getJson<T = unknown>(url: string, { timeoutMs = 8000, notF
   }
   if (res.status === 404 && notFound) throw new HttpError(404, notFound);
   if (!res.ok) throw new HttpError(502, `the data source answered HTTP ${res.status}; try again`);
+  let body: T;
   try {
-    return (await res.json()) as T;
-  } catch {
+    // 21 Nov 2026: read through the counter (lib/source-json.ts): at most `maxBytes` (32 MB when not given) is held.
+    body = await jsonWithin<T>(res, maxBytes);
+  } catch (e) {
+    if (e instanceof HttpError) throw e;
     throw new HttpError(502, "the data source sent an unreadable answer");
   }
+  // 21 Nov 2026: a body that is the bare JSON value null parsed fine and was handed on, and 36 tools then read a field
+  // of null: our 500 for what is the source's failure. No caller reads null as an answer (each reads an object or a list).
+  if (body === null || body === undefined) throw new HttpError(502, "the data source sent an unreadable answer; nothing was charged, try again");
+  return body;
 }

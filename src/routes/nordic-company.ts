@@ -11,6 +11,8 @@
 import { entry, getJson, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { retryDelayMs } from "../lib/retry";
+import { API_UA } from "../lib/outbound-ua";
+import { jsonWithin, sourceShape, unreadableSource } from "../lib/source-json";
 
 const NOT_A_CREDIT_REPORT = "Register facts only. This is not a credit report, credit score or rating.";
 
@@ -115,8 +117,9 @@ export function noCompanyView(u: BrregUnit) {
   };
 }
 
+const NO_REGISTER = "the Norwegian register";
 async function brreg<T>(url: string): Promise<{ status: number; body: T | null }> {
-  const headers = { accept: "application/json", "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" };
+  const headers = { accept: "application/json", "user-agent": API_UA };
   let res: Response | undefined;
   // 19 Nov 2026: one retry was still not enough on the shared Workers egress IP (/status: 1 error in 7 calls). A
   // 429/503 is now asked up to three times total, each with a fresh timeout. A source that asks to wait longer than
@@ -143,12 +146,17 @@ async function brreg<T>(url: string): Promise<{ status: number; body: T | null }
   if (res.status === 404) return { status: 404, body: null };
   // A deleted unit answers 410 Gone with its record (slettedato).
   if (!res.ok && res.status !== 410) throw new HttpError(502, `the Norwegian register answered HTTP ${res.status}; try again, nothing was charged`);
-  try { return { status: res.status, body: (await res.json()) as T }; } catch { throw new HttpError(502, "the Norwegian register sent an unreadable answer"); }
+  // 21 Nov 2026: a 200 whose body is the bare value null came out as "no company with that number" (a 404 the caller was
+  // blamed for), and a record without its number as our 500. Both are the register failing.
+  let body: T;
+  try { body = await jsonWithin<T>(res); } catch (e) { if (e instanceof HttpError) throw e; throw unreadableSource(NO_REGISTER); }
+  return { status: res.status, body: sourceShape(body, NO_REGISTER) };
 }
 
 export async function noLookup(orgnr: string) {
   const r = await brreg<BrregUnit>(`${BRREG}/enheter/${orgnr}`);
   if (!r.body) throw new HttpError(404, `no company with organisasjonsnummer ${fmtNo(orgnr)} in Enhetsregisteret; nothing was charged`);
+  sourceShape(r.body, NO_REGISTER, { organisasjonsnummer: "string" });
   if (r.body.organisasjonsform?.kode && PERSON_FORMS.has(r.body.organisasjonsform.kode)) throw new HttpError(404, "that number is a sole proprietorship (enkeltpersonforetak), a person's own business; this tool covers companies and other legal persons only; nothing was charged");
   return noCompanyView(r.body.slettedato || r.status === 410 ? { ...r.body, slettedato: r.body.slettedato ?? "deleted" } : r.body);
 }

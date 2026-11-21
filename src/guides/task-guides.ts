@@ -7,7 +7,7 @@ import { PRODUCT_FOR_TOOL, PRODUCTS } from "../lib/product-pages";
 import { ENDPOINTS, SERVICE_NAME, exampleParams, toolSlug, type Endpoint } from "../endpoints";
 import { TOOL_COUNT } from "../endpoints";
 import { FREE_HTTP_CALLS_PER_CALLER } from "../lib/free-calls";
-import { CAPACITY_LIMITED, httpFree } from "../lib/capacity";
+import { freeEligible, httpFree } from "../lib/capacity";
 import { keyOfferNumbers } from "../lib/key-prices";
 import { TOOL_SEO } from "../lib/tool-seo";
 import { COMPANY_FOOTER } from "../lib/legal";
@@ -193,7 +193,7 @@ function toolBlock(e: Endpoint, origin: string, freeCalls: boolean, md: boolean)
     `${e.summary}. ${e.price} per successful call; failed calls are never charged.`,
     e.description,
     `Inputs: ${params.join("; ")}.`,
-    free ? `Free first (${FREE_HTTP_CALLS_PER_CALLER} successful calls per caller, no key):\n\n    curl "${request}&trial=1"` : (CAPACITY_LIMITED.has(e.path) ? `Not in the free calls (it costs us capacity per call); pay from the first call.` : `Not in the free calls over HTTP; pay from the first call.`),
+    free ? `Free first (${FREE_HTTP_CALLS_PER_CALLER} successful calls per caller, no key):\n\n    curl "${request}&trial=1"` : (freeEligible(e.path) ? `Not in the free calls over HTTP; pay from the first call.` : `Not in the free calls (it costs us per call); pay from the first call.`),
     ...(keyLine ? [keyLine] : []),
     `With a card key from ${origin}/credits, in a header or, when your client can only fetch a URL, in the URL:\n\n    curl -H "Authorization: Bearer adt_…" "${request}"\n    curl "${request}&api_key=adt_…"`,
     `Without a key the same URL answers 402 with x402 and MPP terms, so a wallet client pays USDC per call and retries. Over MCP (${origin}/mcp) this tool is ${mcp}.`,
@@ -203,7 +203,7 @@ function toolBlock(e: Endpoint, origin: string, freeCalls: boolean, md: boolean)
   if (md) return lines.join("\n\n");
   return `<section><h2>${esc(e.summary)} <span class="price">${esc(e.price)}</span></h2><p>${esc(e.description)}</p>
 <p><strong>Inputs:</strong> ${params.map(esc).join("; ")}.</p>
-${free ? `<p>Free first (${FREE_HTTP_CALLS_PER_CALLER} successful calls per caller, no key):</p><pre><code>curl "${esc(request)}&amp;trial=1"</code></pre>` : `<p>Not in the free calls${CAPACITY_LIMITED.has(e.path) ? " (it costs capacity per call)" : " over HTTP"}; pay from the first call.</p>`}
+${free ? `<p>Free first (${FREE_HTTP_CALLS_PER_CALLER} successful calls per caller, no key):</p><pre><code>curl "${esc(request)}&amp;trial=1"</code></pre>` : `<p>Not in the free calls${freeEligible(e.path) ? " over HTTP" : " (it costs us per call)"}; pay from the first call.</p>`}
 ${keyLine ? `<p><strong>${esc(keyLine)}</strong></p>` : ""}<p>With a card key from <a href="/credits">/credits</a>, in a header or, when your client can only fetch a URL, in the URL:</p><pre><code>curl -H "Authorization: Bearer adt_…" "${esc(request)}"\ncurl "${esc(request)}&amp;api_key=adt_…"</code></pre>
 <p>Without a key the same URL answers <code>402 Payment Required</code> with x402 and MPP terms, so a wallet client pays USDC per call and retries. Over MCP (<code>${esc(origin)}/mcp</code>) this tool is <code>${esc(mcp)}</code>.</p>
 <details><summary>Example result</summary><pre><code>${esc(shown)}</code></pre></details>

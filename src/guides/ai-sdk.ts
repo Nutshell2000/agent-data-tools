@@ -1,6 +1,8 @@
 // /guides/ai-sdk: how the npm package gives these tools to the Vercel AI SDK, and how an MCP client pays from a wallet.
 // Written 14 Nov 2026 with npm package agent-data-tools 1.3.0; the code below was run against ai 7.0.173.
 
+import { FREE_NOT_FOR, FREE_TOOLS_KIND } from "../lib/free-calls";
+
 export function aiSdkMarkdown(origin: string) {
   return `# Use Agent Data Tools with the Vercel AI SDK
 
@@ -32,7 +34,7 @@ console.log(text);
 
 ## Paying
 
-Without any setup the first successful calls are free. After that a call that is not paid returns its price and a link to the model as the tool result, so a generation does not fail.
+Without any setup the first successful calls are free on ${FREE_TOOLS_KIND} (${FREE_NOT_FOR}). After that, and on every other tool, a call that is not paid returns its price and a link to the model as the tool result, so a generation does not fail.
 
 Prepaid key, by card from $1 at ${origin}/credits:
 
@@ -78,7 +80,7 @@ Package: https://www.npmjs.com/package/agent-data-tools
 
 export function aiSdkHtml(origin: string) {
   const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-  const inline = (s: string) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/https:\/\/[^\s<>]+/g, (match) => { const url = match.replace(/[.,;]+$/, ""); return `<a href="${url}">${url}</a>${match.slice(url.length)}`; });
+  const inline = (s: string) => esc(s).replace(/`([^`]+)`/g, "<code>$1</code>").replace(/https:\/\/[^\s<>]+/g, (match) => { const url = match.replace(/[.,;:!?]+$/, ""); return `<a href="${url}">${url}</a>${match.slice(url.length)}`; });
   const body = aiSdkMarkdown(origin).split(/```(?:json|sh|js)\n|```/).map((part, i) => (i % 2
     ? `<pre><code>${esc(part.trim())}</code></pre>`
     : part.trim().split(/\n\n+/).map((p) => (p.startsWith("# ") ? `<h1>${esc(p.slice(2))}</h1>` : p.startsWith("## ") ? `<h2>${esc(p.slice(3))}</h2>` : p ? `<p>${inline(p)}</p>` : "")).join(""))).join("");

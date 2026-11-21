@@ -1,7 +1,7 @@
 import { z } from "zod";
 import * as z4mini from "zod/v4-mini";
 import { exampleParams, type Endpoint } from "./endpoints";
-import { CAPACITY_LIMITED } from "./lib/capacity";
+import { freeEligible } from "./lib/capacity";
 import { LOCAL_PATHS } from "./families";
 import { FREE_CALLS_PER_CALLER } from "./lib/free-calls";
 import { chatgptText } from "./lib/chatgpt-tools";
@@ -114,7 +114,7 @@ export const directoryToolDescription = (endpoint: Endpoint) =>
   `${chatgptText(endpoint.path, `${endpoint.description}${exampleText(endpoint)}`)} ${writeNote(endpoint.path)}`;
 
 export const toolDescription = (endpoint: Endpoint) =>
-  `${endpoint.description}${exampleText(endpoint)} Price ${endpoint.price}/call via x402 USDC or a card key (/credits)${CAPACITY_LIMITED.has(endpoint.path) ? "" : `, first ${FREE_CALLS_PER_CALLER} free`}; failed calls free. ${writeNote(endpoint.path).replace(/\.$/, "")}; each call is charged, so repeats are not free.`;
+  `${endpoint.description}${exampleText(endpoint)} Price ${endpoint.price}/call via x402 USDC or a card key (/credits)${freeEligible(endpoint.path) ? `, first ${FREE_CALLS_PER_CALLER} free` : ""}; failed calls free. ${writeNote(endpoint.path).replace(/\.$/, "")}; each call is charged, so repeats are not free.`;
 
 /**
  * The range a LISTED integer input states (16 Nov 2026). zod writes a bare integer as -9007199254740991..9007199254740991,

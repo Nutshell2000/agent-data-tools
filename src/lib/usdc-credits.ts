@@ -177,11 +177,23 @@ export async function buyCreditsWithUsdc(c: C): Promise<Response> {
 
   // Settled. The transaction identifies the purchase: a second write for the same one adds nothing.
   const sessionId = `x402:${settled.network ?? "unknown"}:${String(settled.transaction).toLowerCase()}`;
-  const fresh = topUpHash ? null : newCreditKey();
-  const keyHash = topUpHash ?? await hashCreditKey(fresh!);
-  let issued: { key: string | null; credits: number; balanceMicros: number } | undefined;
+  // A top-up is granted only to an account that exists inside the grant's own transaction (issueCredits,
+  // requireExisting), which also follows a key that was replaced since the check above. If the account is gone all the
+  // same, the payment is not lost: the buyer gets a new key, as if none had been sent.
+  let topUp = topUpHash;
+  let fresh = topUp ? null : newCreditKey();
+  let keyHash = topUp ?? await hashCreditKey(fresh!);
+  let issued: { key: string | null; credits: number; balanceMicros: number; missing?: true } | undefined;
   for (let attempt = 0; attempt < 2 && !issued; attempt++) {
-    try { issued = await store.issueCredits({ sessionId, credits: pack.credits, key: fresh, keyHash }); } catch (e) {
+    try {
+      let answer = await store.issueCredits({ sessionId, credits: pack.credits, key: fresh, keyHash, ...(topUp ? { requireExisting: true } : {}) });
+      if (answer.missing) {
+        console.warn(`usdc credits: settled ${sessionId} for a key that no longer exists; issuing a new key`);
+        topUp = undefined; fresh = newCreditKey(); keyHash = await hashCreditKey(fresh);
+        answer = await store.issueCredits({ sessionId, credits: pack.credits, key: fresh, keyHash });
+      }
+      issued = answer;
+    } catch (e) {
       console.error(`usdc credits: settled ${sessionId} but the grant could not be written (attempt ${attempt + 1})`, e);
     }
   }
@@ -196,14 +208,14 @@ export async function buyCreditsWithUsdc(c: C): Promise<Response> {
     console.error(`usdc credits: CREDITS_UNSAVED ${sessionId} keyHash ${keyHash.slice(0, 12)} credits ${pack.credits} parked=${parked ?? false}; operator reconciliation may be needed`);
     return send(new Response(JSON.stringify({
       ...(fresh ? { apiKey: fresh, mcpUrl: `${origin}/mcp/k/${fresh}` } : {}),
-      creditsAdded: 0, creditsPending: pack.credits, toppedUp: Boolean(topUpHash), paid,
+      creditsAdded: 0, creditsPending: pack.credits, toppedUp: Boolean(topUp), paid,
       note: `Your payment settled (${settled.transaction}) but the credits could not be saved this minute. GET ${origin}/credits/balance with the key in a few minutes adds them; you are not charged again. If they are still missing, write to the support address on /credits with the transaction.`,
       use,
     }), { status: 200, headers }));
   }
   return send(new Response(JSON.stringify({
     ...(fresh ? { apiKey: issued.key ?? fresh, mcpUrl: `${origin}/mcp/k/${issued.key ?? fresh}` } : {}),
-    creditsAdded: issued.credits, balanceCredits: creditsFromMicros(issued.balanceMicros), toppedUp: Boolean(topUpHash), paid,
+    creditsAdded: issued.credits, balanceCredits: creditsFromMicros(issued.balanceMicros), toppedUp: Boolean(topUp), paid,
     use: fresh ? `${use} Save the key: it is shown in this response only.` : "Added to the key you sent in X-API-Key; keep using it.",
   }), { status: 200, headers }));
 }

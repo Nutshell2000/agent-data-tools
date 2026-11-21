@@ -1,13 +1,15 @@
 // Card credits over HTTP: the /credits pages, the API-key charge used by the paywall, and the MCP charge.
+import { markUnpaidCall } from "./unpaid-call";
+import { SUPPORT_EMAIL } from "../endpoints";
 import { Hono, type Context, type Next } from "hono";
 import { trialsEnabled, type Env } from "./env";
 import { switchedOff } from "./switches";
-import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER, callerHash, utcDay } from "./free-calls";
+import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER, FREE_KEY_CALLS_PER_MONTH as FREE_KEY_CALLS, FREE_NOT_FOR, FREE_REST_PAID, FREE_TOOLS_KIND, callerHash, utcDay } from "./free-calls";
 
 
 
 import {
-  CREDIT_PACKS, FREE_KEY_CALLS, PLAN_PORTAL_URL, PLAN_SYNC_MS, WEB_PACKS, WEB_PLANS, CheckoutError, apiKeyFrom, callsAt, creditsFromMicros, hashCreditKey, newCreditKey, paidPlanInvoices, planLinks, priceMicros, topUpLinks, usdcPackList, usdcPrepayLine, utcMonth, verifyCheckout,
+  CREDIT_PACKS, PLAN_PORTAL_URL, PLAN_SYNC_MS, WEB_PACKS, WEB_PLANS, CheckoutError, apiKeyFrom, callsAt, creditsFromMicros, hashCreditKey, newCreditKey, paidPlanInvoices, planLinks, priceMicros, topUpLinks, usdcPackList, usdcPrepayLine, utcMonth, verifyCheckout,
   type PlanRead, type SpendResult,
 } from "./credits";
 import { applyUnsavedCredits, buyCreditsWithUsdc } from "./usdc-credits";
@@ -15,7 +17,7 @@ import { prefersHtml } from "./negotiate";
 import { freeKeysOn } from "./free-keys";
 import { buyCreditsWithMpp, mppEnabled } from "./mpp-credits";
 import { markStage } from "./funnel";
-import { voiceKeyHtml, voiceKeyJson, voicePrices } from "./voice-pro";
+import { voiceKeyHtml, voiceKeyJson, voicePlanName, voicePrices } from "./voice-pro";
 import { voiceKeyBalance, voiceKeyKind, voiceTestKeysOn } from "./voice-keys";
 import { REVIEW_CALLS_PER_DAY, REVIEW_CALLS_TOTAL_PER_DAY, REVIEW_MAX_PRICE, REVIEW_NOTE, isReviewKey, reviewAllows, reviewCaller } from "./review-keys";
 
@@ -77,14 +79,14 @@ export function creditsInfo(origin: string, agentPurchase = false, cardReady = t
     cardReady,
     usdc: { what: usdcPrepayLine(origin), packs: usdcPackList(origin), topUp: "Send a key you already hold as X-API-Key on the same request to add the credits to it." },
     packs: cardReady ? WEB_PACKS.map((p) => ({ price: `$${p.usdCents / 100}`, credits: p.credits, buy: p.url })) : [],
-    // The monthly plan is offered only once its Stripe links and the cancel page exist (lib/credits.ts CREDIT_PLANS).
+    // The monthly plan is offered only once its Stripe links and the cancel page exist (lib/credits.ts WEB_PLANS: the developer plans).
     ...(cardReady && WEB_PLANS.length ? { monthlyPlans: { what: PLAN_TERMS, plans: planLinks(), manageOrCancel: PLAN_PORTAL_URL } } : {}),
     afterPayment: `Stripe returns you to ${origin}/credits/claim, which shows your API key once the payment is confirmed. Reopening that page shows the same key.`,
-    use: "Send the key with any tool call as `Authorization: Bearer adt_…` or `X-API-Key: adt_…` (HTTP GET or the MCP server at /mcp), or as `?api_key=adt_…` in the tool URL where a client can only fetch a URL. In Claude, ChatGPT and other apps, add the connector /mcp/account and sign in with the key (or use /mcp/k/<key> where an app takes only a URL). No x402 payment is needed then. A key that travels in URLs can end up in logs: rotate it at POST /credits/rotate if it was shared.",
+    use: "Send the key with any tool call as `Authorization: Bearer adt_…` or `X-API-Key: adt_…` (HTTP GET or the MCP server at /mcp), or as `?api_key=adt_…` in the tool URL where a client can only fetch a URL. In Claude, ChatGPT and other apps, connect to /mcp/account with the key (or use /mcp/k/<key> where an app takes only a URL). No x402 payment is needed then. A key that travels in URLs can end up in logs: rotate it at POST /credits/rotate if it was shared.",
     charging: "The tool's price is taken before it runs and given back if the call fails (any 4xx or 5xx, or an MCP error). Responses carry X-Credits-Charged and X-Credits-Remaining.",
     balance: `${origin}/credits/balance with the same header.`,
     rotate: `Key leaked or shared by mistake? POST ${origin}/credits/rotate with the key: the balance moves to a new key and the old one stops working.`,
-    refunds: "Unused credits do not expire. For a refund of unused credits, write to the support address in /openapi.json.",
+    refunds: `Credits do not expire. Purchases are final: the key and credits are delivered at once. A call that fails costs nothing, and a purchase that was not delivered is put right: ${origin}/refunds`,
   };
 }
 
@@ -110,7 +112,7 @@ function page(title: string, body: string, indexable = false, description = `${t
   const seoTags = seo
     ? `<link rel="canonical" href="${esc(seo.origin + seo.path)}"><meta property="og:type" content="website"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(seo.origin + seo.path)}"><meta property="og:image" content="${esc(seo.origin)}/og-glyphcall.png"><meta name="twitter:card" content="summary_large_image">`
     : "";
-  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${indexable ? "" : `<meta name="robots" content="noindex">`}${seoTags}<style>body{font:16px/1.5 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}a{color:#0645ad}code,pre{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px;overflow-wrap:anywhere}pre{padding:.75rem;white-space:pre-wrap}a.buy{display:inline-block;margin:.25rem .5rem .25rem 0;padding:.5rem .9rem;border:1px solid #1b1b1b;border-radius:6px;text-decoration:none;color:inherit}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}a{color:#8ecbff}code,pre{background:#262626}a.buy{border-color:#eee}}</style></head><body><main>${body}</main></body></html>`;
+  return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title><meta name="description" content="${esc(description)}">${indexable ? "" : `<meta name="robots" content="noindex">`}${seoTags}<style>.crumbs{margin:0 0 .6rem;font-size:.95rem}.crumbs a{margin-right:.2rem}.beginner{border:1px solid #c9d8cf;border-radius:10px;padding:.7rem .9rem;margin:.4rem 0 1rem;background:rgba(31,122,77,.07)}body{font:16px/1.5 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}a{color:#0645ad}code,pre{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px;overflow-wrap:anywhere}pre{padding:.75rem;white-space:pre-wrap}a.buy{display:inline-block;margin:.25rem .5rem .25rem 0;padding:.5rem .9rem;border:1px solid #1b1b1b;border-radius:6px;text-decoration:none;color:inherit}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}a{color:#8ecbff}code,pre{background:#262626}a.buy{border-color:#eee}}</style></head><body><main>${body}</main></body></html>`;
 }
 
 export const credits = new Hono<{ Bindings: Env }>();
@@ -129,15 +131,15 @@ credits.get("/credits", (c) => {
   const plansHtml = planLinksHtml ? `<h2>Monthly plan</h2><p>${esc(PLAN_TERMS)}</p><p>${planLinksHtml}</p><p><a href="${esc(PLAN_PORTAL_URL)}">Manage or cancel a plan</a> at any time; Stripe asks for the e-mail you paid with.</p>` : "";
   // 20 Nov 2026: the page has shown monthly plans since 1.298 ($3/mo entry), so the old "no subscription" title lied.
   const planTitle = WEB_PLANS.length ? `, or $${WEB_PLANS[0].usdCents / 100} a month` : "";
-  return c.html(page(`API credits by card: from $1${planTitle}`, `<h1>One API key: a monthly plan, or pay once from $1. No account, and credits never expire.</h1><p>What $1 buys:</p><ul>${dollarBuys}</ul><p>Failed calls are never charged. Try most tools free first, with no card: ${FREE_HTTP_CALLS_PER_CALLER} calls from a browser or plain HTTP, ${FREE_CALLS_PER_CALLER} through an AI app (MCP). ${freeKeysOn(c.env) ? `Or <a href="/keys/free">get a free API key</a>: ${FREE_KEY_CALLS} calls a month, by e-mail. ` : ""}${esc(info.what)}</p>${plansHtml}${plansHtml ? "<h2>Or pay once</h2>" : ""}<p>${packs}</p>
+  return c.html(page(`API credits by card: from $1${planTitle}`, `<p class="crumbs"><a href="/">Glyphcall</a> · <a href="/transcribe-pro">Transcribe Pro</a> · <a href="/#try">Free voice tools</a></p><div class="beginner"><b>Just want transcripts or voices?</b> You don't need this page: <a href="/transcribe-pro">Transcribe Pro</a> or <a href="/#pricing">see the plans</a>. This page is for developers and AI apps that call the tools from code.</div><h1>One API key: a monthly plan, or pay once from $1. No account, and credits never expire.</h1><p>What $1 buys:</p><ul>${dollarBuys}</ul><p>Failed calls are never charged. Try the ${FREE_TOOLS_KIND} free first, with no card: ${FREE_HTTP_CALLS_PER_CALLER} calls from a browser or plain HTTP, ${FREE_CALLS_PER_CALLER} through an AI app (MCP); ${FREE_NOT_FOR}. ${FREE_REST_PAID} ${freeKeysOn(c.env) ? `Or <a href="/keys/free">get a free API key</a>: ${FREE_KEY_CALLS} calls a month, by e-mail. ` : ""}${esc(info.what)}</p>${plansHtml}${plansHtml ? "<h2>Or pay once</h2>" : ""}<p>${packs}</p>
 <h2>Use it in your AI app</h2><ul>
-<li><b>Claude or ChatGPT:</b> add a custom connector with the URL <code>${esc(origin)}/mcp/account</code> and sign in with your key.</li>
-<li><b>Cursor, Claude Code and other MCP clients:</b> connect to <code>${esc(origin)}/mcp</code> with the header <code>Authorization: Bearer adt_…</code>, or use <code>${esc(origin)}/mcp/k/&lt;key&gt;</code> where only a URL fits.</li>
+<li><b>AI chat apps that take a connector URL:</b> add a custom connector with the URL <code>${esc(origin)}/mcp/account</code> and enter your key when the app asks.</li>
+<li><b>Code editors and other MCP clients:</b> connect to <code>${esc(origin)}/mcp</code> with the header <code>Authorization: Bearer adt_…</code>, or use <code>${esc(origin)}/mcp/k/&lt;key&gt;</code> where only a URL fits.</li>
 <li><b>HTTP:</b> <code>curl -H "Authorization: Bearer adt_…" "${esc(origin)}/eth/balance?address=0x…"</code></li>
 <li><b>Fetch-only clients</b> (an agent's URL reader that cannot set headers): <code>${esc(origin)}/eth/balance?address=0x…&amp;api_key=adt_…</code>. A key in a URL can end up in logs; rotate it at <code>POST /credits/rotate</code> if it was shared.</li></ul>
 <h2>See what you get (free previews)</h2><ul>${previews}</ul><p>All tools and prices: <a href="/#tools">catalog</a>.</p>
 <h2>Agents with a USDC wallet: prepay once</h2><p style="overflow-wrap:anywhere">${esc(usdcPrepayLine(origin))} Packs: ${usdcPackList(origin).map((p) => `<code>${esc(p.buy.replace(origin, ""))}</code> ${p.price} = ${p.credits.toLocaleString("en-US")} credits`).join(", ")}. To top up a key, send it as <code>X-API-Key</code> on the same request.</p>
-${info.agentPurchase ? `<h2>Agents: buy without a checkout page</h2><p>${esc(info.agentPurchase)}</p>` : ""}<h2>After paying</h2><p>${esc(info.afterPayment)}</p><h2>Charging and refunds</h2><p>${esc(info.charging)}</p><p>${esc(info.refunds)}</p><p>Prefer USDC? Every tool also takes x402 payments: see <a href="/llms.txt">llms.txt</a>. <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/support">Support</a></p>`, true, undefined, { origin, path: "/credits" }));
+${info.agentPurchase ? `<h2>Agents: buy without a checkout page</h2><p>${esc(info.agentPurchase)}</p>` : ""}<h2>After paying</h2><p>${esc(info.afterPayment)}</p><h2>Charging and refunds</h2><p>${esc(info.charging)}</p><p>Unused credits do not expire. <a href="/refunds">Refunds</a></p><p>Prefer USDC? Every tool also takes x402 payments: see <a href="/llms.txt">llms.txt</a>. <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a> · <a href="/support">Support</a></p>`, true, undefined, { origin, path: "/credits" }));
 });
 
 credits.get("/credits/claim", async (c) => {
@@ -150,14 +152,15 @@ credits.get("/credits/claim", async (c) => {
     if (!store) throw new CheckoutError(503, "credits are unavailable right now");
     const pack = await verifyCheckout(c.env.STRIPE_READ_KEY, c.req.query("session_id") ?? "");
     // A top-up link names an existing key by its hash; credits go to it and no new key is issued.
-    // An unknown hash (mistyped link) falls back to a new key, so a payment is never lost.
-    const topUp = pack.topUpKeyHash && await store.creditBalance(pack.topUpKeyHash) ? pack.topUpKeyHash : undefined;
+    // An unknown hash (mistyped link) falls back to a new key, so a payment is never lost. Whether the key exists is
+    // decided inside the grant's own transaction (issueCredits, requireExisting), not by a read before it: a key that
+    // is replaced in between is followed to its new hash instead of getting an account nobody holds.
     // A monthly plan: the same grant, plus the subscription on the key so its renewals are found (lib/credits.ts).
     const plan = pack.plan ? { plan: pack.plan } : {};
     const planNote = pack.plan ? { monthlyPlan: `${pack.credits.toLocaleString("en-US")} credits are added to this key each month when the payment renews. ${PLAN_TERMS}`, managePlan: PLAN_PORTAL_URL } : {};
     const planHtml = pack.plan ? `<h2>Your monthly plan</h2><p>${pack.credits.toLocaleString("en-US")} credits are added to this key each month when the payment renews. ${esc(PLAN_TERMS)} <a href="${esc(PLAN_PORTAL_URL)}">Manage or cancel the plan</a> (Stripe asks for the e-mail you paid with).</p>` : "";
-    const added = topUp ? await store.issueCredits({ sessionId: c.req.query("session_id")!, credits: pack.credits, key: null, keyHash: topUp, ...plan }) : undefined;
-    if (added) {
+    const added = pack.topUpKeyHash ? await store.issueCredits({ sessionId: c.req.query("session_id")!, credits: pack.credits, key: null, keyHash: pack.topUpKeyHash, requireExisting: true, ...plan }) : undefined;
+    if (added && !added.missing) {
       // 19 Nov 2026: the card purchase is the main conversion this funnel measures. issueCredits is idempotent, so only
       // a genuine first grant counts — re-opening the claim page must not inflate it. (The USDC path already marks it.)
       if (!added.repeated) markStage("credits_bought");
@@ -173,15 +176,22 @@ credits.get("/credits/claim", async (c) => {
     const key = issued.key;
     if (!key) throw new CheckoutError(400, "the key from this purchase was replaced, or the purchase topped up an existing key: use your current key (check it at /credits/balance)");
     const refill = topUpLinks(await hashCreditKey(key)).map((l) => `<a class="buy" href="${esc(l.buy)}">${l.price}: ${l.credits.toLocaleString("en-US")} credits</a>`).join("");
-    // Glyphcall Transcribe Pro (lib/voice-pro.ts): its payment link returns with for=voice; the grant is the $9 plan's.
+    // Glyphcall Transcribe Pro (lib/voice-pro.ts): a checkout that returns with for=voice; the grant is the plan's.
     const voice = c.req.query("for") === "voice" && !!pack.plan;
-    const result = { apiKey: key, mcpUrl: `${origin}/mcp/k/${key}`, creditsAdded: issued.credits, balanceCredits: creditsFromMicros(issued.balanceMicros), use: creditsInfo(origin).use, ...planNote, ...(voice ? voiceKeyJson(origin, key, voicePrices()) : {}) };
+    const result = { apiKey: key, mcpUrl: `${origin}/mcp/k/${key}`, creditsAdded: issued.credits, balanceCredits: creditsFromMicros(issued.balanceMicros), use: creditsInfo(origin).use, ...planNote, ...(voice ? voiceKeyJson(origin, key, voicePrices(), issued.credits) : {}) };
     if (!html) return c.json(result);
-    return c.html(page(voice ? "Your Transcribe Pro key" : "Your API key", `<h1>${voice ? "Welcome to Transcribe Pro" : "Payment received"}</h1><p>${issued.credits.toLocaleString("en-US")} credits added. Your API key:</p><pre>${esc(key)}</pre><p><strong>Save it now.</strong> Anyone with the key can spend its credits. Reopening this page shows the same key.</p>${voice ? voiceKeyHtml(origin, key, voicePrices()) : ""}<h2>${voice ? "Use it with other tools" : "Use it"}</h2><pre>curl -H "Authorization: Bearer ${esc(key)}" "${esc(origin)}/eth/balance?address=0x4200000000000000000000000000000000000006"</pre><h2>Use your own words with this key</h2><pre id="reuse">If you tried the free voice console before buying, your text is still in this browser. Come back here and this command speaks it with your new key.</pre><script>(function(){var t;try{t=localStorage.getItem("gc-vc-text")}catch(e){}if(!t||!t.trim())return;var el=document.getElementById("reuse");if(!el)return;el.textContent="curl ${esc(origin)}/v1/audio/speech -H \\"Authorization: Bearer ${esc(key)}\\" -H \\"Content-Type: application/json\\" -d "+JSON.stringify(JSON.stringify({model:"tts-1",input:t.trim().slice(0,200),voice:"alloy"}));})();</script><h2>Use it in Claude, ChatGPT, Cursor and other AI apps</h2><p>Best: add a custom connector with <code>${esc(origin)}/mcp/account</code> and sign in with the key when the app asks. Or add this URL, which carries your key (keep it private):</p><pre>${esc(origin)}/mcp/k/${esc(key)}</pre><p>Clients that support headers can instead use <code>${esc(origin)}/mcp</code> with the header above. Balance: <code>${esc(origin)}/credits/balance</code>.</p>${planHtml}<h2>Add credits to this key later</h2><p>These links top up this same key, so nothing in your apps changes. Bookmark this page; it keeps working.</p><p>${refill}</p>`));
+    const voiceName = voice ? voicePlanName(pack.usdCents) : "";
+    return c.html(page(voice ? `Your ${voiceName} key` : "Your API key", `<h1>${voice ? `Welcome to ${voiceName}` : "Payment received"}</h1><p>${issued.credits.toLocaleString("en-US")} credits added. Your API key:</p><pre id="gc-key">${esc(key)}</pre><p><button type="button" id="gc-copy" data-ev="key_copy">Copy key</button> <button type="button" id="gc-save" data-ev="key_download">Download key</button></p><script data-gc-key>(function(){var k=document.getElementById("gc-key").textContent;document.getElementById("gc-copy").onclick=function(){if(navigator.clipboard)navigator.clipboard.writeText(k).then(function(){document.getElementById("gc-copy").textContent="Copied"})};document.getElementById("gc-save").onclick=function(){var a=document.createElement("a");a.href=URL.createObjectURL(new Blob(["Glyphcall key\\n"+k+"\\n\\nKeep it private: anyone with the key can spend its credits.\\nReopen your claim page from the same address to see it again.\\n"],{type:"text/plain"}));a.download="glyphcall-key.txt";document.body.appendChild(a);a.click();a.remove()}})()</script><p><strong>Save it now.</strong> Anyone with the key can spend its credits. Reopening this page shows the same key.</p>${voice ? voiceKeyHtml(origin, key, voicePrices(), issued.credits, pack.usdCents) : ""}<h2>${voice ? "Use it with other tools" : "Use it"}</h2><pre>curl -H "Authorization: Bearer ${esc(key)}" "${esc(origin)}/eth/balance?address=0x4200000000000000000000000000000000000006"</pre><h2>Use your own words with this key</h2><pre id="reuse">If you tried the free voice console before buying, your text is still in this browser. Come back here and this command speaks it with your new key.</pre><script>(function(){var t;try{t=localStorage.getItem("gc-vc-text")}catch(e){}if(!t||!t.trim())return;var el=document.getElementById("reuse");if(!el)return;el.textContent="curl ${esc(origin)}/v1/audio/speech -H \\"Authorization: Bearer ${esc(key)}\\" -H \\"Content-Type: application/json\\" -d "+JSON.stringify(JSON.stringify({model:"tts-1",input:t.trim().slice(0,200),voice:"alloy"}));})();</script><h2>Use it in Claude, ChatGPT, Cursor and other AI apps</h2><p>Best: add a custom connector with <code>${esc(origin)}/mcp/account</code> and sign in with the key when the app asks. Or add this URL, which carries your key (keep it private):</p><pre>${esc(origin)}/mcp/k/${esc(key)}</pre><p>Clients that support headers can instead use <code>${esc(origin)}/mcp</code> with the header above. Balance: <code>${esc(origin)}/credits/balance</code>.</p>${planHtml}<h2>Add credits to this key later</h2><p>These links top up this same key, so nothing in your apps changes. Bookmark this page; it keeps working.</p><p>${refill}</p>`));
   } catch (err) {
     if (!(err instanceof CheckoutError)) throw err;
     if (!html) return c.json({ error: err.message }, err.status);
-    return c.html(page("Credits", `<h1>Not ready</h1><p>${esc(err.message)}</p>`), err.status);
+    // 21 Nov 2026: someone who just paid must never meet a dead end here (a refresh, a bookmark, another device).
+    const retry = esc(new URL(c.req.url).pathname + new URL(c.req.url).search);
+    return c.html(page("Your purchase", `<h1>We can't show your key on this page yet</h1>
+<p>${err.status === 503 ? "Our key service is busy for a moment." : "This address does not carry a finished purchase we can find."} If you have just paid, wait a minute and press <b>Try again</b>: the key appears here as soon as the payment is confirmed, and reopening this same address later shows the same key.</p>
+<p><a class="buy" href="${retry}">Try again</a> <a class="buy" href="/">Back to Glyphcall</a></p>
+<p>Paid but no key? Write to <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a> with the e-mail you paid with, and we will deliver it.</p>
+<p><small>Details: ${esc(err.message)}</small></p>`), err.status);
   }
 });
 
@@ -213,10 +223,12 @@ credits.post("/credits/rotate", async (c) => {
 });
 
 /**
- * One call of the day for a review key (lib/review-keys.ts), or why not: "price" (the tool is above the review ceiling),
+ * One call of the day for a review key (lib/review-keys.ts), or why not: "metered" (the tool is one no free path runs:
+ * lib/capacity.ts FREE_EXCLUDED_METERED; a review key pays nothing, so it is a free path), "price" (the tool is above the review ceiling),
  * "used" (the day is used up), "unavailable" (the counter cannot be reached). Nothing is written to the credit ledger.
  */
-async function takeReviewCall(env: Env, keyHash: string, price: string): Promise<{ left: number; refund: () => Promise<void> } | "price" | "used" | "unavailable"> {
+async function takeReviewCall(env: Env, keyHash: string, price: string, excluded: boolean): Promise<{ left: number; refund: () => Promise<void> } | "metered" | "price" | "used" | "unavailable"> {
+  if (excluded) return "metered";
   if (!reviewAllows(price)) return "price";
   const store = ledger(env);
   if (!store) return "unavailable";
@@ -227,8 +239,9 @@ async function takeReviewCall(env: Env, keyHash: string, price: string): Promise
   if (left === null) return "used";
   return { left, refund: () => store.refundDailyCall(caller, day).catch((e: unknown) => { console.error("review key: refund failed", e); }) };
 }
-const reviewRefusal = (why: "price" | "used" | "unavailable") => why === "price"
-  ? `a review key runs tools priced up to ${REVIEW_MAX_PRICE}; this one costs more. Not charged.`
+const reviewRefusal = (why: "metered" | "price" | "used" | "unavailable") => why === "metered"
+  ? `a review key runs ${FREE_TOOLS_KIND}; this tool needs a key with credits. Not charged.`
+  : why === "price" ? `a review key runs tools priced up to ${REVIEW_MAX_PRICE}; this one costs more. Not charged.`
   : why === "used" ? `this review key has used its ${REVIEW_CALLS_PER_DAY} calls for today (UTC). Not charged.`
   : "the review key's counter cannot be read right now. Not charged; try again in a few minutes.";
 
@@ -255,7 +268,7 @@ credits.get("/credits/balance", async (c) => {
   return c.json({ balanceCredits: creditsFromMicros(account.balanceMicros), purchasedCredits: creditsFromMicros(account.purchasedMicros), spentCredits: creditsFromMicros(account.spentMicros), calls: account.calls, since: account.createdAt, ...(account.free ? { freeCalls: freeCallsView(account.free) } : {}), topUp: topUpLinks(keyHash), ...monthly });
 });
 
-export const FREE_KEY_NOTE = "A free key makes this many successful calls each calendar month (UTC); failed calls do not count. It does not cover web search, news, the larger AI models, speech, images, browser rendering or screenshots: those need credits on the key.";
+export const FREE_KEY_NOTE = `A free key makes this many successful calls each calendar month (UTC); failed calls do not count. It runs ${FREE_TOOLS_KIND}, ${FREE_NOT_FOR}: those need credits on the key.`;
 /** What a free key's allowance looks like to its holder: the month is UTC and a new one starts the count again. */
 const freeCallsView = (free: { perMonth: number; month: string; used: number }) => {
   const used = free.month === utcMonth() ? free.used : 0;
@@ -280,14 +293,18 @@ export function unknownKey(env: Env, origin: string, key: string) {
   };
 }
 
-/** Paywall branch for a request that carries an API key: spend, run, refund on failure. */
-export async function chargeCredits(c: C, price: string, key: string, next: Next, freeEligible = false) {
+/**
+ * Paywall branch for a request that carries an API key: spend, run, refund on failure.
+ * freeEligible: a free key's monthly calls may run this tool. freeExcluded: no free path runs it, so a review key is refused.
+ */
+export async function chargeCredits(c: C, price: string, key: string, next: Next, freeEligible = false, freeExcluded = false) {
   const store = ledger(c.env);
   if (!store) return c.json({ error: "credits are unavailable right now; pay with x402 instead. Not charged." }, 503);
   const keyHash = await hashCreditKey(key);
   if (isReviewKey(c.env, keyHash)) {
-    const call = await takeReviewCall(c.env, keyHash, price);
-    if (typeof call === "string") return c.json({ error: reviewRefusal(call), code: call === "unavailable" ? "unavailable" : "review_key_limit" }, call === "unavailable" ? 503 : call === "price" ? 402 : 429, call === "unavailable" ? { "Retry-After": "300" } : undefined);
+    const call = await takeReviewCall(c.env, keyHash, price, freeExcluded);
+    if (typeof call === "string") return c.json({ error: reviewRefusal(call), code: call === "unavailable" ? "unavailable" : "review_key_limit" }, call === "unavailable" ? 503 : call === "price" || call === "metered" ? 402 : 429, call === "unavailable" ? { "Retry-After": "300" } : undefined);
+    markUnpaidCall();
     try { await next(); } catch (err) { await call.refund(); throw err; }
     if (c.res.status >= 400) await call.refund();
     c.res.headers.set("X-Credits-Charged", "0");
@@ -301,6 +318,7 @@ export async function chargeCredits(c: C, price: string, key: string, next: Next
   if (spent.ok && spent.free) {
     // One of a free key's monthly calls: nothing is spent, and a failed call gives it back.
     const giveBack = () => store.refundCredits(keyHash, 0, true).catch((e: unknown) => console.error("free key: giving a call back failed", keyHash.slice(0, 12), e));
+    markUnpaidCall();
     try { await next(); } catch (err) { await giveBack(); throw err; }
     const failed = c.res.status >= 400;
     if (failed) await giveBack(); else markStage("free_key_call");
@@ -340,7 +358,7 @@ export async function useFreeCall(env: Env, ip: string | undefined, onUnavailabl
   if (!store || !trialsEnabled(env)) return null;
   // The operator's off-switch (lib/switches.ts): the caller gets the payment request, with the "unavailable" note.
   if (await switchedOff(env, "free")) { onUnavailable?.(); return null; }
-  // HTTP (3 calls) and MCP (25) must not share one counter: a shared-IP MCP user spending 25 used to lock out every
+  // HTTP (3 calls) and MCP (10; 25 until 21 Nov 2026) must not share one counter: a shared-IP MCP user spending 25 used to lock out every
   // HTTP trial=1 caller at that address (25 >= 3), and an HTTP trial user got only 22 MCP calls. Namespace the hash.
   const address = (surface ? `${surface}:` : "") + await callerHash(ip ?? "unknown");
   const day = utcDay();
@@ -352,7 +370,7 @@ export async function useFreeCall(env: Env, ip: string | undefined, onUnavailabl
     .catch((err: unknown) => { console.error(`free calls: unavailable (${err instanceof Error ? err.message : err})`); return undefined; });
   if (taken === undefined) { onUnavailable?.(); return null; }
   const { left, caller } = taken;
-  if (left === null) markStage("free_exhausted");
+  if (left === null) markStage("free_exhausted"); else markUnpaidCall();
   // The refund must never reject: a KV write failure during a refund must not turn the caller's failed call into a
   // 500, and every caller of refund() should be able to await it without its own catch.
   return left === null ? null : { left, refund: () => store.refundFreeCall(caller, day).catch((e: unknown) => console.error("free call: refund failed; reconcile", e)) };
@@ -369,7 +387,7 @@ export async function useDailyCall(env: Env, caller: string, perCaller: number, 
   const day = utcDay();
   const left = await store.takeDailyCall(hash, day, perCaller, total).catch((err: unknown) => { console.error(`daily calls: unavailable (${err instanceof Error ? err.message : err})`); return undefined; });
   if (left === undefined) { onUnavailable?.(); return null; }
-  if (left === null) markStage("free_exhausted");
+  if (left === null) markStage("free_exhausted"); else markUnpaidCall();
   return left === null ? null : { left, refund: () => store.refundDailyCall(hash, day).catch((e: unknown) => console.error("daily call: refund failed; reconcile", e)) };
 }
 
@@ -389,10 +407,10 @@ export function mcpInstructions(origin: string, hasKey: boolean, toolCount: numb
   const pay = signedIn
     ? (hasKey
       ? "You are signed in with a card-credit key: each successful call spends the tool's price from its credits (1 credit = $0.001); failed calls are refunded."
-      : `You are signed in without credits: ${FREE_CALLS_PER_CALLER} free successful calls are included (not for the image, speech, rendering, screenshot, transcription, search and large-model tools); failed calls never count. After that, tools need credits, which the user can get at ${origin}/credits before reconnecting and signing in with the key.`)
+      : `You are signed in without credits: ${FREE_CALLS_PER_CALLER} free successful calls are included, on ${FREE_TOOLS_KIND} (${FREE_NOT_FOR}); failed calls never count. ${FREE_REST_PAID} After the free calls, every tool needs credits, which the user can get at ${origin}/credits before reconnecting and signing in with the key.`)
     : hasKey
     ?"This connection carries a card-credit API key: each successful call spends the tool's price from it (1 credit = $0.001); failed calls are refunded. Balance: GET " + origin + "/credits/balance with the same header."
-    : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically (not for the image, speech, rendering, screenshot, transcription, search and large-model tools); failed calls never count. Where the server issues a session id at initialize, keeping it counts calls per connection; otherwise calls are counted per network address, which cloud apps such as Claude and ChatGPT share between users: there, ${origin}/mcp/account gives each person their own. `
+    : `Each caller gets ${FREE_CALLS_PER_CALLER} free successful calls, used automatically, on ${FREE_TOOLS_KIND} (${FREE_NOT_FOR}); failed calls never count. ${FREE_REST_PAID} Where the server issues a session id at initialize, keeping it counts calls per connection; otherwise calls are counted per network address, which cloud apps such as Claude and ChatGPT share between users: there, ${origin}/mcp/account gives each person their own. `
       + `After that a call returns a payment request. If your client pays x402 (USDC on Base, Polygon, Arbitrum or Solana) or MPP (Tempo) it can pay it, or prepay once: GET ${origin}/credits/usdc/5 with x402 returns a key worth 5,000 credits for later calls. Otherwise tell your user they can buy a prepaid key by card at ${origin}/credits (from $1 = 1,000 credits, about 100 calls at $0.01) ${keyPlacement(origin, signedIn)}.${agentPurchase ? ` If your client supports MPP with a Link agent wallet, it can buy a pack itself: GET ${origin}/credits/buy/5 (or /20, /100) and pay the 402; the response carries the key (send an existing key as X-API-Key to top it up instead).` : ""}`;
   // The signed-in server has the directory tool set (mcp.ts): no generative media, no web search or news.
   if (focus) return `Agent Data Tools, ${toolCount} pay-per-call tools for ${focus.kinds}. ${focus.prices ?? "Most cost $0.01 per successful call."} ${pay} Every tool's result shape is in its output schema. ${focus.pick}`;
@@ -410,7 +428,7 @@ const DIRECTORY_PICK = PICK_BY_TASK.replace(" (stronger model: ai_chat_large; Op
   .replace("; text to speech → ai_speech (up to 2,000 characters: text_to_speech)", "").replace("; an image from a prompt → image", "").replace("; current information from the web → search, news", "").replace(/ Smaller servers per section:.*$/, "");
 
 /** What an agent should relay to its user when its MCP client cannot pay with x402. */
-export function paymentHint(origin: string, price: string, signedIn = false, cardReady = false, keyPerCall = price) {
+export function paymentHint(origin: string, price: string, signedIn = false, cardReady = false, keyPerCall = price, inFreeCalls = true) {
   // People reach this through an assistant (Claude, ChatGPT) with no USDC wallet: 12 of them ran out of free
   // MCP calls on 22 Oct and none bought, so the card checkout is offered as one link the assistant can show.
   // A key may pay LESS than the public price (many tools cost 1 credit with a key): quote the pack's value at the
@@ -423,20 +441,22 @@ export function paymentHint(origin: string, price: string, signedIn = false, car
     + `${card}, and retry. A client with an x402 or MPP wallet can instead settle each call directly, or prepay a key in one paid HTTP request (no checkout page: x402 wallets at ${origin}/credits/usdc/1, MPP wallets at ${origin}/credits/buy/1) and retry with that key. The key works for every tool on this server; a client that can only fetch a URL adds it as &api_key=adt_… to the tool URL.`
     // Cloud apps (Claude, ChatGPT) reach /mcp from shared addresses, so the per-address free calls may
     // already be used by someone else; signing in gives this person their own allowance.
-    + (signedIn ? "" : ` In Claude, ChatGPT or another app that connects from the cloud, the free calls are shared with everyone behind the same address; connect to ${origin}/mcp/account instead and continue without a key to get your own ${FREE_CALLS_PER_CALLER} free calls.`);
+    + (!inFreeCalls ? ` This tool is not in the free calls: they run ${FREE_TOOLS_KIND}, ${FREE_NOT_FOR}.`
+      : signedIn ? "" : ` In Claude, ChatGPT or another app that connects from the cloud, the free calls are shared with everyone behind the same address; connect to ${origin}/mcp/account instead and continue without a key to get your own ${FREE_CALLS_PER_CALLER} free calls (they run ${FREE_TOOLS_KIND}).`);
 }
 
 /** MCP: wraps a tool handler so a call with an API key spends credits; isError results are refunded. */
-export function creditCharger(env: Env, key: string, price: string, origin: string, directory = false, freeEligible = false) {
+export function creditCharger(env: Env, key: string, price: string, origin: string, directory = false, freeEligible = false, freeExcluded = false) {
   return async <R extends { isError?: boolean; content?: unknown[] }>(run: () => Promise<R>): Promise<R | { isError: true; content: { type: "text"; text: string }[] }> => {
     const store = ledger(env);
     const fail = (text: string) => ({ isError: true as const, content: [{ type: "text" as const, text }] });
     if (!store) return fail("credits are unavailable right now; not charged");
     const keyHash = await hashCreditKey(key);
     if (isReviewKey(env, keyHash)) {
-      const call = await takeReviewCall(env, keyHash, price);
+      const call = await takeReviewCall(env, keyHash, price, freeExcluded);
       if (typeof call === "string") return fail(reviewRefusal(call));
       let reviewed: R;
+      markUnpaidCall();
       try { reviewed = await run(); } catch (err) { await call.refund(); throw err; }
       if (reviewed.isError) await call.refund();
       return reviewed;
@@ -448,6 +468,7 @@ export function creditCharger(env: Env, key: string, price: string, origin: stri
       // One of a free key's monthly calls: nothing is spent, and a failed call gives it back.
       const giveBack = () => store.refundCredits(keyHash, 0, true).catch((e: unknown) => console.error("free key: giving a call back failed", keyHash.slice(0, 12), e));
       let free: R;
+      markUnpaidCall();
       try { free = await run(); } catch (err) { await giveBack(); throw err; }
       if (free.isError) await giveBack();
       return free;

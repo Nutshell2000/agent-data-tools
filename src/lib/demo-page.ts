@@ -1,5 +1,7 @@
 // /demo: a short product walkthrough (a screen recording of the live site) with the narration as text, so the
 // grant form, directories and people get one stable demo link on our own domain without a video account.
+import { FREE_CALLS_PER_CALLER, FREE_HTTP_CALLS_PER_CALLER, FREE_NOT_FOR, FREE_TOOLS_KIND } from "./free-calls";
+
 export function demoPage(origin: string, toolCount: number): string {
   const step = (title: string, body: string) => `<li><strong>${title}</strong> ${body}</li>`;
   return `<!doctype html>
@@ -16,7 +18,7 @@ img{display:block;width:100%;height:auto;border:1px solid var(--line);border-rad
 code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em}
 </style></head><body><main>
 <h1>Agent Data Tools: product demo</h1>
-<p class="lead">${toolCount} pay-per-call data tools for AI agents. No accounts or API keys: an agent pays each request in USDC on Base via x402 (or MPP), with free calls to start (25 over MCP, 3 over HTTP).</p>
+<p class="lead">${toolCount} pay-per-call data tools for AI agents. No accounts or API keys: an agent pays each request in USDC on Base via x402 (or MPP), with free calls to start on ${FREE_TOOLS_KIND} (${FREE_CALLS_PER_CALLER} over MCP, ${FREE_HTTP_CALLS_PER_CALLER} over HTTP; ${FREE_NOT_FOR}).</p>
 <img src="/demo.gif" alt="Screen recording: the homepage, the tool list, a free payee screening check, a tool's payment page and a live Base gas reading" width="1568" height="726">
 <h2>What the recording shows</h2>
 <ol>

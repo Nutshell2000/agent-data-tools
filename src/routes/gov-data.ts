@@ -4,7 +4,7 @@
 // work (17 U.S.C. §105).
 import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
-import { sourceJson, unreadableSource } from "../lib/source-json";
+import { sourceJson, sourceShape, textWithin, unreadableSource } from "../lib/source-json";
 
 export const SEC_UA = "AgentDataTools/1.0 (spellz111122@gmail.com)";
 
@@ -90,6 +90,7 @@ export const GOV_DATA: Entry[] = [
       const res = await govFetch(`https://data.sec.gov/submissions/CIK${cik}.json`, 600, "application/json");
       if (res.status === 404) throw new HttpError(404, `no SEC filer with CIK ${Number(cik)}`);
       const s = (await sourceJson(res, "the SEC")) as { name: string; cik: string; tickers: string[]; sic: string; sicDescription: string; filings: { recent: Record<string, string[]> } };
+      sourceShape(s, "the SEC", { "filings.recent.form": "array" }); // 21 Nov 2026: an answer without the filings was our 500
       const r = s.filings.recent;
       const rows = (r.form ?? []).map((f, i) => ({ f, i })).filter(({ f }) => !form || f.toUpperCase() === form).slice(0, limit);
       const plainCik = String(Number(cik));
@@ -123,7 +124,7 @@ export const GOV_DATA: Entry[] = [
       // 21 Nov 2026: a 404 from the FAA feed was read as a feed with no delays, a paid answer saying every airport runs on time.
       const feed = await govFetch("https://nasstatus.faa.gov/api/airport-status-information", 60, "application/xml");
       if (feed.status === 404) throw new HttpError(502, "the FAA status feed answered HTTP 404; nothing was charged, try again");
-      const xml = await feed.text();
+      const xml = await textWithin(feed);
       // An empty answer or a web page (an error or block page served with 200) is not the feed; it used to read as "no delays".
       if (!xml.trim() || /^\s*<(!doctype\s+html|html[\s>])/i.test(xml)) throw unreadableSource("the FAA status feed");
       const groups = all(xml, "Delay_type");

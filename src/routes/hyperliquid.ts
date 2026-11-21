@@ -280,7 +280,7 @@ export const HYPERLIQUID: Entry[] = [
     INDICATORS_PRICE),
 
   entry("/hyperliquid/prices","All crypto prices, Hyperliquid: mid prices of every perpetual",
-    "Current mid prices of every Hyperliquid perpetual in one call (BTC, ETH, SOL, HYPE and about 200 more), as a coin-to-price map, or only the coins you name. Read live from Hyperliquid's public API. Use for a quick price snapshot of many coins at once, portfolio marks or a price ticker; for funding and open interest use hyperliquid_market.",
+    "Current mid prices of every Hyperliquid perpetual in one call (BTC, ETH, SOL, HYPE and the rest of the list), as a coin-to-price map, or only the coins you name. Read live from Hyperliquid's public API. Use for a quick price snapshot of many coins at once, portfolio marks or a price ticker; for funding and open interest use hyperliquid_market.",
     ["crypto-prices", "price-ticker", "hyperliquid", "crypto", "market-data", "prices"], {
       coins: { type: "string", description: "Optional comma-separated symbols such as BTC,ETH,SOL (default: every perpetual)", example: "BTC,ETH,SOL" },
     },

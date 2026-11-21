@@ -25,6 +25,7 @@
 import { entry, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { govFetch, resolveCik } from "./gov-data";
+import { SOURCE_MAX_BYTES_LARGE, jsonWithin, sourceShape } from "../lib/source-json";
 
 export interface XbrlFact { start?: string; end: string; val: number; accn: string; fy?: number | null; fp?: string | null; form: string; filed: string; frame?: string }
 export interface CompanyFacts { cik: number; entityName: string; facts: Record<string, Record<string, { units: Record<string, XbrlFact[]> }>> }
@@ -323,7 +324,9 @@ export const SEC_FINANCIALS: Entry[] = [
       const res = await govFetch(`https://data.sec.gov/api/xbrl/companyfacts/CIK${cik}.json`, 21_600, "application/json");
       if (res.status === 404) throw new HttpError(404, `the SEC holds no XBRL financial data for CIK ${Number(cik)}`);
       let facts: CompanyFacts;
-      try { facts = (await res.json()) as CompanyFacts; } catch { throw new HttpError(502, "the SEC's company facts file could not be read; try again"); }
+      try { facts = await jsonWithin<CompanyFacts>(res, SOURCE_MAX_BYTES_LARGE); } catch (e) { if (e instanceof HttpError) throw e; throw new HttpError(502, "the SEC's company facts file could not be read; try again"); }
+      // 21 Nov 2026: a file that parsed but holds no facts section (null, a list, an empty object) was our 500.
+      sourceShape(facts, "the SEC", { facts: "object" });
       return financials(facts, { period, limit });
     }, "$0.02"),
 ];

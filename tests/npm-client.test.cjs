@@ -62,7 +62,7 @@ test('npm client: catalog from OpenAPI, names resolve to paths, OpenAI definitio
   assert.equal(def.function.parameters.properties.city.type, 'string');
 }));
 
-test('npm client buyer docs state the real 3-HTTP / 25-MCP free split, not a bare 25', async () => {
+test('npm client buyer docs state the real 3-HTTP / 10-MCP free split, not a bare 25', async () => {
   const { readFileSync } = require('node:fs');
   const dir = 'clients/agent-data-tools/';
   const files = ['package.json', 'README.md', 'cli.mjs', 'index.mjs'];
@@ -73,10 +73,10 @@ test('npm client buyer docs state the real 3-HTTP / 25-MCP free split, not a bar
     assert.ok(!/(?:25 free calls|25 successful calls per caller|gives 25 free calls|holds no payment or wallet code)/.test(text), `${file}: no bare 25-free claim`);
   }
   const pkg = JSON.parse(readFileSync(dir + 'package.json', 'utf8'));
-  assert.match(pkg.description, /3 free HTTP calls \(25 over MCP\)/);
+  assert.match(pkg.description, /3 free HTTP calls \(10 over MCP\)/);
   const readme = readFileSync(dir + 'README.md', 'utf8');
-  assert.match(readme, /3 free calls over HTTP \(25 over MCP\)/);
-  assert.match(readme, /3 successful calls per caller over HTTP, 25 over MCP/);
+  assert.match(readme, /3 free calls over HTTP \(10 over MCP\)/);
+  assert.match(readme, /3 successful calls per caller over HTTP, 10 over MCP/);
 });
 
 test('MCP registry advertises the npm client version this repo builds', () => {

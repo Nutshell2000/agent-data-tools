@@ -1,13 +1,13 @@
 ---
 name: agent-data-tools
-description: "Call live data and AI tools over plain HTTP, pay per call, no account: web search and page or PDF text, LLM chat and embeddings, speech to text, screenshots and website audits, token prices, wallet and chain reads on Base, Ethereum and other EVM networks, sanctions and payee checks, stock quotes and one-call research briefs and daily stock screens, CSV preflight, x402 endpoint checks, FX, weather, time, company and domain lookups, and 670+ more. Use when a task needs current information or an outside lookup and no better tool is connected. 3 free calls over HTTP (25 over MCP), then card credits or USDC (x402)."
+description: "Call live data and AI tools over plain HTTP, pay per call, no account: web search and page or PDF text, LLM chat and embeddings, speech to text, screenshots and website audits, token prices, wallet and chain reads on Base, Ethereum and other EVM networks, sanctions and payee checks, stock quotes and one-call research briefs and daily stock screens, CSV preflight, x402 endpoint checks, FX, weather, time, company and domain lookups, and 670+ more. Use when a task needs current information or an outside lookup and no better tool is connected. 3 free calls over HTTP (10 over MCP) on tools that only compute or look up public data; AI, speech, images, rendering and search are paid from the first call, by card credits or USDC (x402)."
 metadata:
   homepage: "https://agent-data-tools.revmesh2074.workers.dev"
 ---
 
 # Agent Data Tools
 
-More than 670 tools behind one host, `https://agent-data-tools.revmesh2074.workers.dev`. Every tool is an HTTP GET with query parameters that returns JSON. There is no sign-up and no API key to start: each caller gets 3 free successful calls over HTTP (25 through the MCP server), and after that a call costs a fixed price, most $0.01 and everyday lookups $0.002. Failed calls are never charged.
+More than 670 tools behind one host, `https://agent-data-tools.revmesh2074.workers.dev`. Every tool is an HTTP GET with query parameters that returns JSON. There is no sign-up and no API key to start: each caller gets 3 free successful calls over HTTP (10 through the MCP server) on tools that only compute or look up public data (not AI, speech, transcription, images, rendering, search or resold data). Everything else is prepaid or paid per call. A paid call costs a fixed price, most $0.01 and everyday lookups $0.002. Failed calls are never charged.
 
 ## How to use this service well (playbook)
 
@@ -78,7 +78,7 @@ The full catalog with every input and output schema: `https://agent-data-tools.r
 
 ## 2. Call it
 
-Free while the caller has free calls left (most tools; not search, image generation, speech, screenshots, rendering or large models):
+Free while the caller has free calls left (tools that only compute or look up public data; not AI, speech, transcription, images, rendering, search or resold data):
 
 ```sh
 curl "https://agent-data-tools.revmesh2074.workers.dev/weather?city=London&trial=1"

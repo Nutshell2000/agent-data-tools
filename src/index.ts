@@ -75,7 +75,7 @@ import { USDC_PACKS, apiKeyFrom, usdcPackPath } from "./lib/credits";
 import { keyPrice } from "./lib/key-prices";
 import { chargeCredits, credits, useFreeCall } from "./lib/credit-routes";
 import { freeKeys, freeKeysOn } from "./lib/free-keys";
-import { httpFree } from "./lib/capacity";
+import { freeEligible, httpFree } from "./lib/capacity";
 import { quoteCacheKey, quoteFingerprint, readQuote, writeQuote } from "./lib/quote-cache";
 import { MCP_SERVER_VERSION } from "./discovery";
 import { pdfTryFor, pdfTryOn, pdfTryRequests, refundPdfTry, takePdfTry } from "./lib/pdf-try";
@@ -121,6 +121,7 @@ import { grantFromRequest, oauth, unauthorized } from "./lib/oauth";
 import { allowedValue } from "./family";
 import { isUpstreamFailure } from "./lib/env";
 import { withSafetyHeaders } from "./lib/response-headers";
+import { loggable } from "./lib/url-keys";
 import { beaconed } from "./lib/page-beacon";
 import { readUpTo } from "./lib/fetch";
 
@@ -178,7 +179,7 @@ app.use(async (c, next) => {
 // (lib/response-headers.ts holds the whole rule and the reasons).
 app.use(async (c, next) => {
   await next();
-  const safe = withSafetyHeaders(c.res);
+  const safe = withSafetyHeaders(c.res, c.req.url);
   if (safe !== c.res) { c.res = undefined as never; c.res = safe; }
 });
 
@@ -504,7 +505,7 @@ app.use(async (c, next) => {
   // would refuse the key before the payment branches below ever run, losing a valid paid call.
   const carriesPayment = Boolean(c.req.header("payment-signature") || c.req.header("x-payment") || /payment/i.test(c.req.header("authorization") ?? ""));
   // frontKeyPrice: what a voice front set for this request when that is less (short audio, speech per 100 characters; lib/voice-billing.ts).
-  if (endpoint && creditKey && !carriesPayment) return chargeCredits(c, frontKeyPrice(c.req.raw, keyPrice(endpoint.path, endpoint.price)), creditKey, next, !CAPACITY_LIMITED.has(endpoint.path));
+  if (endpoint && creditKey && !carriesPayment) return chargeCredits(c, frontKeyPrice(c.req.raw, keyPrice(endpoint.path, endpoint.price)), creditKey, next, freeEligible(endpoint.path), !freeEligible(endpoint.path));
   // MPP clients pay one call with Authorization: Payment: evm/charge (USDC on our x402 network, lib/mpp-evm.ts,
   // on by default) or tempo/charge (lib/mpp-tempo.ts, only while TEMPO_PAY_TO is set). The credential names its method.
   const mppCredential = endpoint && c.req.method === "GET" && (evmEnabled(c.env) || tempoEnabled(c.env)) ? c.req.header("authorization") : undefined;
@@ -881,7 +882,7 @@ for (const product of PRODUCT_PAGES) {
   app.get(`/${product.slug}`, (c) => {
     const capped = trialsEnabled(c.env) && pdfTryOn(c.env, product.tool);
     const tryIt = trialsEnabled(c.env) && (httpFree(product.tool) || capped);
-    return c.html(productPage(product, origin(c.req.url), tryIt, (slug) => taskGuide(slug)?.phrase, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined, Boolean(c.env.STRIPE_READ_KEY), publicBrand(c.env, SERVICE_NAME), freeKeysOn(c.env) && !CAPACITY_LIMITED.has(product.tool)));
+    return c.html(productPage(product, origin(c.req.url), tryIt, (slug) => taskGuide(slug)?.phrase, capped ? `Try it free on your PDF (first ${PDF_TRY_PAGES} pages)` : undefined, Boolean(c.env.STRIPE_READ_KEY), publicBrand(c.env, SERVICE_NAME), freeKeysOn(c.env) && freeEligible(product.tool)));
   });
 }
 // Per-country VAT check pages (lib/vat-pages.ts), part of the company-check product.
@@ -925,7 +926,7 @@ app.post(LEXGLYPH_EXPORT_PATH, async (c) => {
   } catch (e) {
     return c.text(e instanceof HttpError ? e.message : "could not build the document", e instanceof HttpError ? (e.status as 400) : 400);
   }
-});// Glyphcall Transcribe Pro, the $9 monthly plan for transcription (lib/voice-pro.ts). Prices come from the catalog.
+});// Glyphcall Transcribe Pro, the monthly plan for transcription (lib/voice-pro.ts). Prices come from the catalog.
 const voicePriceOf = (path: string) => ENDPOINTS.find((e) => e.path === path)?.price ?? "$0.05";
 setVoicePrices({ long: voicePriceOf("/transcribe/long"), short: voicePriceOf("/transcribe"), summary: voicePriceOf("/transcribe/summary") });
 app.get(VOICE_PRO_PATH, (c) => c.html(voiceProPage(origin(c.req.url), voicePrices())));
@@ -1198,8 +1199,11 @@ app.get("/payee/:domain", async (c) => {
   const html = isBrowser(c.req.header("accept"), c.req.header("user-agent"));
   if (!record) {
     const claim = `${o}/payee/claim?domain=${encodeURIComponent(domain)}`;
+    // The name is escaped where it is printed (21 Nov 2026). It was printed as it came, safe only because payeeDomain
+    // lets nothing but a host name through; the page must not depend on a check made somewhere else staying strict.
+    const shown = domain.replace(/[&<>"']/g, (ch) => `&#${ch.charCodeAt(0)};`);
     return html
-      ? c.html(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content=noindex><title>No payee record for ${domain}</title><body style="font:16px/1.5 system-ui;max-width:640px;margin:40px auto;padding:0 16px"><h1>No record for ${domain} yet</h1><p>The business can publish ${DECLARATION_PATH} and <a href="${claim}">claim its record</a>. <a href="${o}/payee">How it works</a>.</p>`, 404)
+      ? c.html(`<!doctype html><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><meta name=robots content=noindex><title>No payee record for ${shown}</title><body style="font:16px/1.5 system-ui;max-width:640px;margin:40px auto;padding:0 16px"><h1>No record for ${shown} yet</h1><p>The business can publish ${DECLARATION_PATH} and <a href="${claim}">claim its record</a>. <a href="${o}/payee">How it works</a>.</p>`, 404)
       : c.json({ error: `no payee record for ${domain}`, claim, howTo: `${o}/payee` }, 404);
   }
   const attestation = await attest(record, c.env, ISSUER);
@@ -1250,7 +1254,7 @@ app.onError((err, c) => {
     const answer = toolErrorAnswer(err, err.status === 404 && ENDPOINTS.some((e) => e.path === c.req.path), help);
     return c.json(answer.body, answer.status as typeof err.status);
   }
-  console.error(err);
+  console.error(loggable(err));
   // An outside source that timed out or could not be reached (a tool without its own catch): say so, uncharged.
   if (isUpstreamFailure(err)) return c.json({ error: "an outside data source did not respond in time; not charged, try again" }, 502);
   return c.json({ error: "internal error" }, 500);

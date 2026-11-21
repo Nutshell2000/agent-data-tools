@@ -1,6 +1,7 @@
-// Free keys by e-mail (the owner, 14 Nov 2026: "Yes, 100 a month"). A visitor leaves an address, gets one message
-// with a link, and the link shows a key that makes FREE_KEY_CALLS successful calls each calendar month on the tools
-// outside CAPACITY_LIMITED (lib/credits.ts `issueFreeKey`, `spendCredits`). Why: every API this service is compared
+// Free keys by e-mail (the owner, 14 Nov 2026: "Yes, 100 a month"; 25 a month and switched off in production since
+// 21 Nov 2026, because every sign-up sends an e-mail). A visitor leaves an address, gets one message with a link, and
+// the link shows a key that makes FREE_KEY_CALLS_PER_MONTH (lib/free-calls.ts) successful calls each calendar month on the tools
+// outside FREE_EXCLUDED_METERED (lib/capacity.ts; lib/credits.ts `issueFreeKey`, `spendCredits`). Why: every API this service is compared
 // with gives 50-1,000 calls a month to an e-mailed key, and 23,978 refusals after our 3 keyless calls led to no sale.
 //
 // Only a hash of the address is kept: enough to give one address one key, not enough to write to anyone again.
@@ -12,10 +13,11 @@
 // Off unless FREE_KEYS is "on" and both EMAIL (a send_email binding) and FREE_KEY_FROM are set, so nothing is
 // offered that cannot be delivered.
 import { Hono, type Context } from "hono";
+import { takeIssueSlot } from "./issue-gate";
 import type { Env } from "./env";
 import { SUPPORT_EMAIL } from "../endpoints";
-import { FREE_KEY_CALLS, hashCreditKey, newCreditKey, planLinks, topUpLinks, utcMonth } from "./credits";
-import { callerHash, utcDay } from "./free-calls";
+import { hashCreditKey, newCreditKey, planLinks, topUpLinks, utcMonth } from "./credits";
+import { FREE_KEY_CALLS_PER_MONTH as FREE_KEY_CALLS, FREE_NOT_FOR, FREE_TOOLS_KIND, callerHash, utcDay } from "./free-calls";
 import { prefersHtml } from "./negotiate";
 import { markStage } from "./funnel";
 import { switchedOff } from "./switches";
@@ -73,12 +75,15 @@ async function openAddress(token: string, sealed: string): Promise<string | null
 const newToken = () => btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
 /** Counts one sign-up for this address and the day; false when either is used up. KV: close enough for a mail cap. */
-async function withinLimits(kv: KVNamespace, ip: string | undefined): Promise<boolean> {
+async function withinLimits(env: Env, kv: KVNamespace, ip: string | undefined): Promise<boolean> {
   const day = utcDay();
-  const callerKey = `freekey:rate:${day}:${await callerHash(ip ?? "unknown")}`;
+  const caller = await callerHash(ip ?? "unknown");
+  const callerKey = `freekey:rate:${day}:${caller}`;
   const totalKey = `freekey:total:${day}`;
   const [mine, all] = await Promise.all([kv.get(callerKey), kv.get(totalKey)]);
   if (Number(mine ?? 0) >= FREE_KEY_REQUESTS_PER_CALLER || Number(all ?? 0) >= FREE_KEY_REQUESTS_PER_DAY) return false;
+  // Requests sent at the same moment all read the same KV number; the counted slot lets only the allowed ones on.
+  if (await takeIssueSlot(env, "freekey", day, caller, FREE_KEY_REQUESTS_PER_CALLER) === false) return false;
   await Promise.all([
     kv.put(callerKey, String(Number(mine ?? 0) + 1), { expirationTtl: 2 * 86_400 }),
     kv.put(totalKey, String(Number(all ?? 0) + 1), { expirationTtl: 2 * 86_400 }),
@@ -94,7 +99,7 @@ function page(title: string, body: string, indexable = false, seo?: { origin: st
   return `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)}</title>${indexable ? "" : `<meta name="robots" content="noindex">`}${seoTags}<meta name="referrer" content="no-referrer"><style>body{font:16px/1.5 system-ui,sans-serif;max-width:44rem;margin:2rem auto;padding:0 16px;color:#1b1b1b;background:#fff}code,pre{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px;overflow-wrap:anywhere}pre{padding:.75rem;white-space:pre-wrap}input[type=email]{font:inherit;padding:.5rem;width:100%;max-width:22rem;box-sizing:border-box}button{font:inherit;padding:.5rem .9rem;border:1px solid #1b1b1b;border-radius:6px;background:none;color:inherit;cursor:pointer}@media (prefers-color-scheme:dark){body{background:#151515;color:#eee}code,pre{background:#262626}button{border-color:#eee}}</style></head><body>${body}</body></html>`;
 }
 
-const WHAT = `${FREE_KEY_CALLS} successful calls each calendar month, for as long as you use it. Failed calls do not count. It covers the tools that read and compute (documents to text, fields out of a document, page text, company and VAT checks, DNS, prices, chain reads and the rest); web search, news, the larger AI models, speech, images, browser rendering and screenshots need credits.`;
+const WHAT = `${FREE_KEY_CALLS} successful calls each calendar month, for as long as you use it. Failed calls do not count. It runs ${FREE_TOOLS_KIND} (PDF and page text, company and VAT checks, DNS, prices, chain reads and the rest), ${FREE_NOT_FOR}: those need credits on the key.`;
 const PRIVACY = `We keep a hash of your address so one address gets one key, and we send this one message. The address itself is stored only if you tick the box for news, and only once you have opened the link; to be removed later, write to ${SUPPORT_EMAIL}.`;
 
 export const freeKeys = new Hono<{ Bindings: Env }>();
@@ -105,12 +110,12 @@ freeKeys.get("/keys/free", (c) => {
   if (!prefersHtml(c.req.header("accept"), c.req.header("user-agent"))) {
     return c.json(on
       ? { freeKey: true, callsEachMonth: FREE_KEY_CALLS, what: WHAT, how: `POST ${origin}/keys/free with JSON {"email":"you@example.com"}; open the link in the message to see the key`, updates: `Optional: add "updates": true to the JSON to be e-mailed about new tools and price changes (at most monthly).`, privacy: PRIVACY }
-      : { freeKey: false, note: `Free keys are not offered right now. Try a tool without a key, or buy credits from $1 at ${origin}/credits.` }, on ? 200 : 404);
+      : { freeKey: false, note: `Free keys are not offered right now. Try one of the ${FREE_TOOLS_KIND} without a key, or buy credits from $1 at ${origin}/credits.` }, on ? 200 : 404);
   }
-  if (!on) return c.html(page("Free API key", `<h1>Free keys are not offered right now</h1><p>You can try most tools without a key, or <a href="/credits">buy credits from $1</a>.</p>`), 404);
+  if (!on) return c.html(page("Free API key", `<h1>Free keys are not offered right now</h1><p>You can try the ${FREE_TOOLS_KIND} without a key, or <a href="/credits">buy credits from $1</a>.</p>`), 404);
   return c.html(page(`Free API key: ${FREE_KEY_CALLS} calls a month`, `<h1>A free API key: ${FREE_KEY_CALLS} calls a month</h1><p>${esc(WHAT)}</p>
 <form method="post" action="/keys/free"><p><label>Your e-mail address<br><input type="email" name="email" required autocomplete="email" placeholder="you@example.com"></label></p><p><label><input type="checkbox" name="updates" value="1"> ${esc(OPT_IN_LABEL)}</label></p><p><button type="submit">Send me the link</button></p></form>
-<p>${esc(PRIVACY)} <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p><p>Need more? <a href="/credits">Credits from $1, or a monthly plan</a>; they go on the same key.</p>`, true, { origin, path: "/keys/free", description: `A free API key for ${FREE_KEY_CALLS} calls a month on every tool that does not use paid capacity. No card, no account: just your e-mail.` }));
+<p>${esc(PRIVACY)} <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a></p><p>Need more? <a href="/credits">Credits from $1, or a monthly plan</a>; they go on the same key.</p>`, true, { origin, path: "/keys/free", description: `A free API key for ${FREE_KEY_CALLS} calls a month on ${FREE_TOOLS_KIND}. No card, no account: just your e-mail.` }));
 });
 
 freeKeys.post("/keys/free", async (c) => {
@@ -130,7 +135,7 @@ freeKeys.post("/keys/free", async (c) => {
   const normal = normalEmail(sent);
   if (!normal) return answer(400, "That is not an e-mail address", "Send one address, such as you@example.com.");
   const kv = c.env.TRIALS!;
-  if (!await withinLimits(kv, c.req.header("cf-connecting-ip")).catch(() => false)) return answer(429, "Too many sign-ups from here today", "Try again tomorrow (UTC), or buy credits at /credits.");
+  if (!await withinLimits(c.env, kv, c.req.header("cf-connecting-ip")).catch(() => false)) return answer(429, "Too many sign-ups from here today", "Try again tomorrow (UTC), or buy credits at /credits.");
   const token = newToken();
   await kv.put(pendingKey(await sha256Hex(token)), JSON.stringify({ emailHash: await emailHash(normal), at: new Date().toISOString(), ...(wantsNews ? { optIn: await sealAddress(token, String(sent).trim()) } : {}) }), { expirationTtl: FREE_KEY_LINK_HOURS * 3600 });
   const origin = new URL(c.req.url).origin;

@@ -45,8 +45,8 @@ What you get, exactly:
 - **Price with a prepaid key:** 4 credits ($0.004) per started 100 characters, never more than $0.01 up to 300
   characters or $0.08 up to 2,000. The `X-Credits-Charged` header states it. Failed calls are not charged.
 - **Price per call without a key (x402 or MPP, USDC):** $0.01 up to 300 characters, $0.08 up to 2,000.
-- **Free test key:** `POST https://glyphcall.com/keys/voice-test` gives 25 calls (speech up to 100 characters, audio up
-  to 30 seconds) when the offer is on; if it answers 404 the offer is off and a $1 key is the way in.
+- **No free test key:** every speech call runs a paid model, so the way in is a prepaid key from $1 at
+  `https://glyphcall.com/credits` (no account), or one call paid on its own with x402.
 - **Errors** come in OpenAI's shape, `{"error": {"message", "type", "code"}}`, and the message is a sentence.
 
 What we do **not** support: `response_format` other than `mp3` (no opus, aac, flac, wav, pcm), `speed` other than 1,

@@ -119,7 +119,7 @@ export interface Env {
   // EU law search index (routes/law-search.ts): passages and their full-text index in D1 (EU jurisdiction), their
   // bge-m3 vectors in Vectorize. Built by scripts/law-index/build.mjs. Optional: without them /law/search answers 503.
   LAW_DB?: D1Database;
-  /** LexGlyph's free searches a day in total (src/lib/lexglyph-page.ts; default 2000). */
+  /** LexGlyph's free keyword searches a day in total (src/lib/lexglyph-page.ts; default 500). */
   LEXGLYPH_DAILY_CAP?: string;
   LAW_VECTORS?: VectorizeIndex;
   /** Swedish statutes, section by section (18 Nov 2026; Vectorize se-law, scripts/law-index/build-se.mjs). */

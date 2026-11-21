@@ -1,8 +1,10 @@
+import { FETCH_UA } from "./outbound-ua";
+import { textWithin } from "./source-json";
 // DexScreener's public API, shared by /liquidity-pool-audit and /token-report. It rate-limits Cloudflare's shared
 // egress addresses (HTTP 429 on every Worker call from staging on 22 Oct while the same request from a PC passed), so a
 // 429 or 5xx is retried a few times with short waits, and answers are kept 30 s in the edge cache so repeated
 // lookups of the same pair or token do not spend the limit again.
-const UA = "Mozilla/5.0 (compatible; AgentDataTools/1.0)";
+const UA = FETCH_UA;
 const CACHE_SECONDS = 30;
 const RETRY_WAITS_MS = [250, 700, 1500];
 
@@ -18,7 +20,7 @@ export async function dexscreener(path: string, timeoutMs = 8000): Promise<Respo
   for (let attempt = 0; ; attempt++) {
     const res = await fetch(url, { headers: { accept: "application/json", "user-agent": UA }, signal: AbortSignal.timeout(Math.max(1000, deadline - Date.now())) });
     if (res.ok) {
-      const body = await res.text();
+      const body = await textWithin(res);
       const fresh = new Response(body, { status: 200, headers: { "content-type": "application/json", "cache-control": `max-age=${CACHE_SECONDS}` } });
       await cache?.put(key, fresh.clone()).catch(() => undefined);
       return fresh;

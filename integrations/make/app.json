@@ -18,7 +18,7 @@
   },
   "connection": {
     "parameters": [
-      { "name": "apiKey", "type": "password", "label": "API Key", "required": true, "help": "Your Glyphcall key (starts with adt_). A free key makes 100 calls a month." }
+      { "name": "apiKey", "type": "password", "label": "API Key", "required": true, "help": "Your Glyphcall key (starts with adt_)." }
     ],
     "communication": {
       "url": "https://glyphcall.com/credits/balance",

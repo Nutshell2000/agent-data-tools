@@ -15,11 +15,11 @@ Pay-per-call data tools for AI agents: prices, sanctions, web and PDF reading
 
 ## Short description (under 160 characters)
 
-Token prices, OFAC sanctions checks, chain reads, web/PDF reading and LLM calls for AI agents. 25 free calls, then x402, MPP or card credits per call.
+Token prices, OFAC sanctions checks, chain reads, web/PDF reading and LLM calls for AI agents. 10 free calls on lookup and compute tools, then x402, MPP or card credits per call.
 
 ## Long description (under 500 characters)
 
-Agent Data Tools sells single tool calls to AI agents over MCP or HTTP. Try 25 calls free, then pay per call with x402 (USDC on Base, Polygon, Arbitrum, Solana) or MPP (USDC on Base, USDC.e on Tempo), or by card with prepaid credits; failed calls are never charged. OpenAI-compatible /v1 chat, Responses and embeddings endpoints run on the same tools. Main jobs: value tokens and wallets, screen a payee before paying or vet a counterparty in one call (OFAC SDN, wallet or contract risk, holdings, verdict), and read the web (pages, JavaScript apps, PDFs, RSS). Plus chain reads on 18 EVM networks and everyday utilities. Calls cost $0.002 to $0.01.
+Agent Data Tools sells single tool calls to AI agents over MCP or HTTP. Try 10 calls free on tools that only compute or look up public data (not AI, speech, transcription, images, rendering, search or resold data), then pay per call with x402 (USDC on Base, Polygon, Arbitrum, Solana) or MPP (USDC on Base, USDC.e on Tempo), or by card with prepaid credits; failed calls are never charged. OpenAI-compatible /v1 chat, Responses and embeddings endpoints run on the same tools. Main jobs: value tokens and wallets, screen a payee before paying or vet a counterparty in one call (OFAC SDN, wallet or contract risk, holdings, verdict), and read the web (pages, JavaScript apps, PDFs, RSS). Plus chain reads on 18 EVM networks and everyday utilities. Calls cost $0.002 to $0.01.
 
 ## Categories / tags
 

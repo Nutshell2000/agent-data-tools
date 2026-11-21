@@ -3,17 +3,30 @@
 // Every outbound page request goes through parseTarget (no private, loopback or credentialed targets), hop by hop.
 import { entry, need, num, opt, pick, type Entry } from "../family";
 import { HttpError } from "../lib/env";
-import { capBytes, parseTarget } from "../lib/fetch";
+import { capBytes, parseTarget, refuseOwnHost } from "../lib/fetch";
 import { decodeEntities, htmlToText } from "./utils";
+import { FETCH_UA } from "../lib/outbound-ua";
+import { jsonWithin } from "../lib/source-json";
 
 const U = ["web", "utility"];
-const UA = "Mozilla/5.0 (compatible; AgentDataTools/1.0; +https://agent-data-tools.revmesh2074.workers.dev)";
+const UA = FETCH_UA;
 
 // ---------- redirects and status ----------
 export interface Hop { url: string; status: number; location?: string; ms: number }
-/** Follows redirects one hop at a time (manual), validating every target before it is requested. */
-export async function walk(start: string, maxHops = 10, method: "GET" | "HEAD" = "GET") {
+/**
+ * Follows redirects one hop at a time (manual), validating every target before it is requested.
+ *
+ * `refuseOwn` (21 Nov 2026): the walker checked every hop against private addresses but not against this service's own
+ * hostnames, so a caller's URL, or a redirect from anybody's site, could aim a paid check at the service itself: the
+ * request arrives from the platform's shared address and can use that address's free calls. With the flag, the first
+ * URL and every redirect target are refused when they are ours (lib/fetch.ts `refuseOwnHost`): a 400, nothing charged.
+ * It is a flag and not the rule because the redirect checker (/url/redirects, which the URL-safety pack also runs) is
+ * frozen in this change: its answers must stay exactly as they are, so it does not pass the flag. The page readers
+ * (lib/fetch.ts `fetchPublic`) do not refuse our hosts either, on purpose: they read our own public pages.
+ */
+export async function walk(start: string, maxHops = 10, method: "GET" | "HEAD" = "GET", { refuseOwn = false }: { refuseOwn?: boolean } = {}) {
   let current = parseTarget(start);
+  if (refuseOwn) refuseOwnHost(current);
   const hops: Hop[] = [];
   const seen = new Set<string>();
   const signal = AbortSignal.timeout(9_000);
@@ -38,6 +51,8 @@ export async function walk(start: string, maxHops = 10, method: "GET" | "HEAD" =
       let next: URL;
       try { next = new URL(location, current); } catch { return { hops, final: current.href, loop: false, response: null, error: "invalid redirect location" }; }
       try { current = parseTarget(next.href); } catch { return { hops, final: next.href, loop: false, response: null, error: "redirects to a private or unsupported address (not followed)" }; }
+      // Thrown, not reported as a hop error: "the site is down" or "the page did not load" would be a wrong paid answer.
+      if (refuseOwn) refuseOwnHost(current);
       continue;
     }
     return { hops, final: current.href, loop: false, response: res };
@@ -73,7 +88,12 @@ type Doh = { Status: number; AD?: boolean; Answer?: { name: string; type: number
 export async function dohQuery(url: string, name: string, type: string): Promise<Doh> {
   const res = await fetch(`${url}?name=${encodeURIComponent(name)}&type=${type}`, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(5_000) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return (await res.json()) as Doh;
+  // 21 Nov 2026: an answer that is JSON but not a DNS answer (null, a list, no Status) was read as one: our 500 in
+  // /dns/lookup, or a status "undefined" sold as the answer. Every caller already treats a throw here as "this
+  // resolver did not answer".
+  const body = (await jsonWithin(res, 1024 * 1024)) as Doh | null;
+  if (typeof body !== "object" || body === null || typeof body.Status !== "number" || (body.Answer !== undefined && !Array.isArray(body.Answer))) throw new Error("unreadable DNS answer");
+  return body;
 }
 const answersOf = (r: Doh, type: string) => (r.Answer ?? []).filter((a) => a.type === TYPE_NUM[type]).map((a) => ({ data: a.data.replace(/\.$/, ""), ttl: a.TTL }));
 
@@ -180,7 +200,7 @@ export const WEB_CHECKS: Entry[] = [
       const checkedAt = new Date().toISOString();
       const t0 = Date.now();
       let w: Awaited<ReturnType<typeof walk>>;
-      try { w = await walk(url, 10, "GET"); }
+      try { w = await walk(url, 10, "GET", { refuseOwn: true }); }
       catch (e) {
         if (e instanceof HttpError && (e.status === 504 || e.status === 502)) return { url, up: false, status: null, responseMs: Date.now() - t0, finalUrl: null, redirects: 0, contentType: null, server: null, bytes: null, contains: want ? { text: want, found: false } : null, checkedAt, reason: e.message };
         throw e;
@@ -246,7 +266,7 @@ export const WEB_CHECKS: Entry[] = [
     { url: "https://www.wikipedia.org/", finalUrl: "https://www.wikipedia.org/", status: 200, score: 64, issues: ["no canonical link"], title: "Wikipedia", titleLength: 9, description: "Wikipedia is a free online encyclopedia…", descriptionLength: 120, canonical: null, robots: null, h1: ["Wikipedia The Free Encyclopedia"], h2Count: 1, images: 2, imagesWithoutAlt: 0, lang: "en", viewport: true, openGraph: { title: null, description: null, image: null }, twitterCard: null, jsonLdBlocks: 0, links: { internal: 30, external: 300 }, wordCount: 1500 },
     async (_e, q) => {
       const url = need(q, "url", 2_000);
-      const w = await walk(url, 10, "GET");
+      const w = await walk(url, 10, "GET", { refuseOwn: true });
       const res = w.response;
       if (!res) throw new HttpError(422, `the page did not load: ${(w as { error?: string }).error ?? "redirect loop"}`);
       if (res.status >= 400) { await res.body?.cancel(); throw new HttpError(422, `the page answered HTTP ${res.status}`); }
@@ -262,14 +282,14 @@ export const WEB_CHECKS: Entry[] = [
       url: { type: "string", description: "A page URL to analyse instead of text", example: "https://en.wikipedia.org/wiki/Search_engine_optimization" },
       top: { type: "integer", description: "How many keywords and phrases to return, 1-50 (default 15)", example: 15 },
     },
-    { source: "text", totalWords: 14, uniqueWords: 7, keywords: [{ word: "agents", count: 3, densityPct: 21.43 }, { word: "pay", count: 3, densityPct: 21.43 }], phrases: [{ phrase: "pay per", count: 2, densityPct: 14.29 }] },
+    { source: "text", totalWords: 14, uniqueWords: 8, keywords: [{ word: "agents", count: 3, densityPct: 21.43 }, { word: "pay", count: 3, densityPct: 21.43 }, { word: "call", count: 2, densityPct: 14.29 }], phrases: [{ phrase: "agents pay", count: 2, densityPct: 14.29 }] },
     async (_e, q) => {
       const top = num(q, "top", { min: 1, max: 50, fallback: 15, integer: true });
       const text = opt(q, "text", 50_000);
       if (text) return { source: "text", ...keywordDensity(text, top) };
       const url = opt(q, "url", 2_000);
       if (!url) throw new HttpError(400, "give text or url");
-      const w = await walk(url, 10, "GET");
+      const w = await walk(url, 10, "GET", { refuseOwn: true });
       const res = w.response;
       if (!res || res.status >= 400) { await res?.body?.cancel(); throw new HttpError(422, "the page did not load"); }
       const body = await readCapped(res, 1_000_000);

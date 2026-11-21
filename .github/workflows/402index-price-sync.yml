@@ -21,6 +21,9 @@ jobs:
   sync:
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Stated on the job too (21 Nov 2026), so a later change to the workflow-level default cannot widen this job.
+    permissions:
+      contents: read
     env:
       TOKEN: ${{ secrets.INDEX_402_TOKEN }}
     steps:

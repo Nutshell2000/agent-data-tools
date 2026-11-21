@@ -3,16 +3,16 @@ const { before, after, test } = require('node:test');
 const { build } = require('esbuild');
 const { Miniflare, convertV4MiniflareOptions } = require('miniflare');
 
-// Glyphcall Transcribe Pro (1.203.0, the owner's yes of 15 Nov 2026): the $9 plan under a voice name. Its checkout must be
-// granted exactly like the $9 plan, its claim page must show voice instructions, and every hour figure must come from
-// the live /transcribe/long price.
+// Glyphcall Transcribe Pro: the entry plan ($3 a month, 3,000 credits since 21 Nov 2026) under a voice name. Its checkout
+// must be granted exactly like the entry plan, its claim page must show voice instructions, and every hour figure must
+// come from the live /transcribe/long price and the credits the plan really gives.
 let mf;
 let lib;
 const O = 'https://api.test';
 const SESSION = 'cs_live_' + 'a'.repeat(40);
 const stripeSession = {
   id: SESSION, status: 'complete', payment_status: 'paid', mode: 'subscription', currency: 'usd', amount_total: 300,
-  metadata: { adt_credits: '15000', plan: 'voice-pro' }, client_reference_id: null, subscription: 'sub_' + 'b'.repeat(24), invoice: 'in_' + 'c'.repeat(24),
+  metadata: { adt_credits: '3000', plan: 'voice-pro' }, client_reference_id: null, subscription: 'sub_' + 'b'.repeat(24), invoice: 'in_' + 'c'.repeat(24),
 };
 before(async () => {
   const d = await build({ entryPoints: ['src/lib/voice-pro.ts', 'src/lib/credits.ts', 'src/discovery.ts'], bundle: true, format: 'cjs', platform: 'node', write: false, outdir: 'out',
@@ -37,15 +37,24 @@ before(async () => {
 after(async () => { await mf?.dispose(); });
 
 test('the Transcribe Pro $3 checkout matches the $3 plan, so verifyCheckout grants it', () => {
-  const plan = lib.CREDIT_PLANS.find((p) => p.usdCents === 300);
-  assert.equal(plan.credits, lib.VOICE_PRO_CREDITS);
-  assert.match(lib.VOICE_PRO_URL, /^https:\/\/buy\.stripe\.com\//);
+  const plan = lib.CREDIT_PLANS.find((p) => p.usdCents === lib.VOICE_PRO_CENTS && p.credits === lib.VOICE_PRO_CREDITS);
+  assert.ok(plan, 'the pair Transcribe Pro is sold with is a row verifyCheckout reads');
+  assert.equal(plan.kind, 'developer', 'it is the entry plan, not a retired pair');
+  assert.equal(lib.VOICE_PRO_CREDITS, 3000);
+  assert.ok(lib.VOICE_PRO_CREDITS <= lib.VOICE_PRO_CENTS * 10, 'never more credits than the price covers');
+  assert.equal(lib.VOICE_PRO_URL, 'https://buy.stripe.com/5kQ8wP7uiflZcJYejjbII0h');
+  assert.notEqual(lib.VOICE_PRO_URL, plan.url, 'its own link, which returns to the voice site');
 });
 
 test('hours are computed from the catalog price of /transcribe/long', () => {
   const long = lib.ENDPOINTS.find((e) => e.path === '/transcribe/long').price;
   const credits = Math.round(Number(long.slice(1)) * 1000);
   assert.equal(lib.voiceProHours(long), Math.floor(lib.VOICE_PRO_CREDITS / credits));
+  assert.equal(lib.voiceProHours('$0.05'), 60, '3,000 credits at 50 credits an hour');
+  // A plan bought through an older link is told the hours of the credits it was granted, not today's.
+  assert.equal(lib.voiceProHours('$0.05', 15000), 300);
+  assert.equal(lib.voiceKeyJson('https://x.test', 'adt_k', { long: '$0.05', short: '$0.01', summary: '$0.05' }, 15000).voicePro.hoursEachMonth, 300);
+  assert.match(lib.voiceKeyHtml('https://x.test', 'adt_k', { long: '$0.05', short: '$0.01', summary: '$0.05' }, 7000), /Your plan adds 7,000 credits each month: about 140 hours/);
 });
 
 test('/transcribe-pro shows the plan, the live hours and the checkout link', async () => {
@@ -54,6 +63,9 @@ test('/transcribe-pro shows the plan, the live hours and the checkout link', asy
   const html = await r.text();
   const long = lib.ENDPOINTS.find((e) => e.path === '/transcribe/long').price;
   assert.ok(html.includes(`about ${lib.voiceProHours(long)} hours`), 'hours from the live price');
+  assert.ok(html.includes(`adds ${lib.VOICE_PRO_CREDITS.toLocaleString('en-US')} credits`), 'the credits the plan gives');
+  assert.doesNotMatch(html.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/g, ''), /15,000|40,000|300 hours|800 hours/, 'none of the allowances of before 21 Nov 2026');
+  assert.doesNotMatch(html, /bJe28r01Q5Lp6lA7UVbII0d|fZu7sLdSG0r5dO22ABbII08|00w3cvbKygq3bFU5MNbII0e/, 'none of the retired payment links');
   assert.ok(html.includes(lib.VOICE_PRO_URL));
   assert.ok(html.includes(lib.VOICE_HOURS_PACK_URL), 'the $1 pack for one-off files');
   assert.match(html, /Transcribe Pro/);
@@ -70,7 +82,8 @@ test('a Transcribe Pro claim returns a key with voice instructions; a plain clai
   assert.equal(voice.status, 200);
   const body = await voice.json();
   assert.match(body.apiKey, /^adt_/);
-  assert.equal(body.creditsAdded, 15000);
+  assert.equal(body.creditsAdded, 3000);
+  assert.equal(body.voicePro.hoursEachMonth, lib.voiceProHours(lib.ENDPOINTS.find((e) => e.path === '/transcribe/long').price, 3000));
   assert.ok(body.monthlyPlan, 'granted as a monthly plan');
   assert.ok(body.voicePro && body.voicePro.hoursEachMonth > 0);
   const html = await (await mf.dispatchFetch(`${O}/credits/claim?session_id=${SESSION}&for=voice`, { headers: { accept: 'text/html', 'user-agent': 'Mozilla/5.0 Chrome/130' } })).text();

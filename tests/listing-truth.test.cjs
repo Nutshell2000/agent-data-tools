@@ -20,6 +20,12 @@ before(async () => {
     'export { listingDescription, listingNameFor, listingTags, bazaarExtensionFor, builderCodeExtension, LISTING_NAME_OF } from "./src/lib/bazaar-extension";',
     'export { usdcRequirements } from "./src/lib/discovery-index";',
     'export { catalogSkillMarkdown } from "./src/guides/catalog-skill";',
+    'export { TICKERS, knowsTicker, listedTickers, tickerClause } from "./src/lib/tickers";',
+    'export { CHAINS, EXTRA_CHAINS, USDC } from "./src/routes/chain-reads";',
+    'export { TECH_RULES } from "./src/routes/packs-intel";',
+    'export { SPEECH_LANGS } from "./src/lib/melo";',
+    'export { SPEECH_VOICES } from "./src/routes/ai-text";',
+    'export { GUARD_CATEGORIES } from "./src/routes/safety";',
   ].join("\n");
   const out = await esbuild.build({ stdin: { contents, resolveDir: ROOT, loader: "ts" }, bundle: true, format: "cjs", platform: "node", write: false, external: ["cloudflare:workers"], logLevel: "silent" });
   const loaded = new Module(path.join(ROOT, "listing-truth.bundle.cjs"), module);
@@ -278,4 +284,183 @@ test("every tool's PAYMENT-REQUIRED header stays inside the 402 header budget", 
   }).sort((a, b) => b[1] - a[1]);
   assert.ok(sizes[0][1] > 4000, "the estimate measures something");
   for (const [p, bytes] of sizes) assert.ok(bytes <= PAYMENT_REQUIRED_BUDGET, `${p}: PAYMENT-REQUIRED is about ${bytes} bytes; shorten its output example (not its description)`);
+});
+
+// ---- Quality round two: what an input's text says, against the input's own declaration and the code's constants ----
+
+test("an input's text names every value its enum takes, and a numeric example lies inside the range the text states", () => {
+  let enums = 0, ranges = 0;
+  for (const e of m.ENDPOINTS) {
+    for (const [name, p] of Object.entries(e.params)) {
+      if (p.enum) {
+        enums++;
+        // /stock/history took interval=1h while its text listed "60m"; /dex/trending took majors=exclude unnamed.
+        const words = new Set(p.description.toLowerCase().split(/[^a-z0-9.+-]+/).flatMap((w) => [w, w.replace(/[.,]+$/, "")]));
+        for (const v of p.enum) assert.ok(words.has(String(v).toLowerCase()), `${e.path}: ${name} takes "${v}", which its description does not name`);
+      }
+      if ((p.type === "integer" || p.type === "number") && typeof p.example === "number") {
+        // "1-48 (default 12)", "500 to 20000", "1-20": the first range the text states.
+        const range = /(?<![\w.-])(-?\d[\d,]*(?:\.\d+)?)\s?(?:-|to)\s?(\d[\d,]*(?:\.\d+)?)(?![\w-])/.exec(p.description);
+        if (!range) continue;
+        const lo = Number(range[1].replaceAll(",", "")), hi = Number(range[2].replaceAll(",", ""));
+        if (!(lo < hi)) continue;
+        ranges++;
+        assert.ok(p.example >= lo && p.example <= hi, `${e.path}: ${name} example ${p.example} is outside the ${lo}-${hi} its description states`);
+      }
+    }
+  }
+  assert.ok(enums >= 40 && ranges >= 100, `checked ${enums} enum inputs and ${ranges} ranged inputs`);
+});
+
+test("a tool with an exact output schema publishes an example the schema covers, and the example has every required field", () => {
+  const exact = m.ENDPOINTS.filter((e) => e.outputSchema);
+  assert.ok(exact.length >= 3, `tools with an exact output schema: ${exact.length}`);
+  for (const e of exact) {
+    const properties = Object.keys(e.outputSchema.properties ?? {});
+    assert.deepEqual(Object.keys(e.outputExample).filter((k) => !properties.includes(k)), [], `${e.path}: example fields the schema does not document`);
+    assert.deepEqual((e.outputSchema.required ?? []).filter((k) => !Object.hasOwn(e.outputExample, k)), [], `${e.path}: required fields the example lacks`);
+  }
+});
+
+// ---- Token tickers, per network ----
+
+const TOKEN_TOOL = /^\/([a-z]+)\/(token-balance|token-info|allowance|token-transfers)$/;
+
+test("a per-network token tool names only tickers that resolve on its network", () => {
+  const slugs = new Set([...m.CHAINS, ...m.EXTRA_CHAINS].map((c) => c.slug));
+  assert.equal(slugs.size, 18);
+  // Every ticker any network's table holds: a listing that names one of them promises it resolves there.
+  const universe = [...new Set(Object.values(m.TICKERS).flatMap((table) => Object.keys(table)))];
+  assert.ok(universe.includes("USDT") && universe.includes("WETH") && universe.includes("DAI"));
+  let named = 0, tools = 0;
+  for (const e of m.ENDPOINTS) {
+    const hit = TOKEN_TOOL.exec(e.path);
+    if (!hit || !slugs.has(hit[1])) continue;
+    tools++;
+    const slug = hit[1];
+    const text = `${e.summary} ${e.description} ${e.params.token.description}`;
+    for (const ticker of universe) {
+      if (!new RegExp(`(?<![A-Za-z0-9.])${ticker}(?![A-Za-z0-9.])`).test(text)) continue;
+      named++;
+      // USDC resolves on every network: from the table, or from the per-network USDC table where there is no table.
+      const resolves = ticker === "USDC" ? Boolean(m.USDC[slug]) : m.knowsTicker(ticker, slug);
+      assert.ok(resolves, `${e.path} names ${ticker}, which is not in the ticker table of ${slug}`);
+    }
+    // The token example is an address (it works whatever the table holds).
+    assert.match(String(e.params.token.example), /^0x[0-9a-fA-F]{40}$/, `${e.path} token example`);
+  }
+  assert.ok(tools >= 60 && named >= 150, `checked ${tools} token tools, ${named} named tickers`);
+  // The rule has teeth: a network with no table is offered USDC alone, and a table's tickers are offered.
+  assert.deepEqual(m.listedTickers("zksync", ["USDT", "WETH", "DAI"]), ["USDC"]);
+  assert.equal(m.tickerClause("hyperevm", ["USDT", "WETH"]), "the ticker USDC");
+  assert.deepEqual(m.listedTickers("base", ["USDT", "WETH", "DAI"]), ["USDC", "USDT", "WETH", "DAI"]);
+});
+
+test("the ticker table holds checksummed addresses and the same USDC contract the per-network tools use", () => {
+  const { getAddress } = require("viem");
+  const slugs = new Set([...m.CHAINS, ...m.EXTRA_CHAINS].map((c) => c.slug));
+  for (const [slug, table] of Object.entries(m.TICKERS)) {
+    assert.ok(slugs.has(slug), `ticker table for ${slug}, which is not a network of the chain tools`);
+    for (const [ticker, address] of Object.entries(table)) {
+      assert.equal(ticker, ticker.toUpperCase(), `${slug} ${ticker}: keys are upper case (inputs are upper-cased before the lookup)`);
+      assert.equal(getAddress(address), address, `${slug} ${ticker}: not an EIP-55 checksummed address`);
+    }
+    // token=USDC answered from the USDC table before a network had a ticker table; it must stay the same contract.
+    assert.equal(table.USDC, m.USDC[slug], `${slug}: USDC in the ticker table differs from the USDC table`);
+  }
+  // One address is one token on a network (a copy-paste slip would give two tickers the same contract).
+  for (const [slug, table] of Object.entries(m.TICKERS)) {
+    const seen = new Map();
+    for (const [ticker, address] of Object.entries(table)) {
+      assert.ok(!seen.has(address.toLowerCase()), `${slug}: ${ticker} and ${seen.get(address.toLowerCase())} share ${address}`);
+      seen.set(address.toLowerCase(), ticker);
+    }
+  }
+});
+
+// ---- Figures a description states, against the constant that decides them ----
+
+test("descriptions that state the size of a table state the table's size", () => {
+  // /tech/stack said "About 110 public fingerprints" over a table of 93.
+  const tech = /About (\d+) public fingerprints/.exec(byPath["/tech/stack"].description);
+  assert.ok(tech, "/tech/stack states its fingerprint count");
+  assert.equal(Number(tech[1]), Math.floor(m.TECH_RULES.length / 10) * 10, `/tech/stack: ${m.TECH_RULES.length} rules`);
+  // The speech tools: languages and voice counts.
+  for (const p of ["/ai/speech", "/text-to-speech"]) {
+    const e = byPath[p];
+    assert.deepEqual(e.params.lang.enum, [...m.SPEECH_LANGS], `${p} lang enum`);
+    assert.ok(e.description.includes(`English (${m.SPEECH_VOICES.en.length} voices) or Spanish (${m.SPEECH_VOICES.es.length} voices)`), `${p} voice counts`);
+    for (const voice of [...m.SPEECH_VOICES.en, ...m.SPEECH_VOICES.es]) assert.ok(e.params.voice.description.includes(voice), `${p} does not name the voice ${voice}`);
+  }
+  // /ai/moderation: "14 in all".
+  const guard = /(\d+) in all/.exec(byPath["/ai/moderation"].description);
+  assert.equal(Number(guard[1]), Object.keys(m.GUARD_CATEGORIES).length, "/ai/moderation category count");
+});
+
+// ---- Hand-written manifests and guides (no script writes these) ----
+
+test("hand-written manifests and integration guides state the catalogue's tool count and lowest price", () => {
+  const files = ["gemini-extension.json", ".claude-plugin/marketplace.json", "claude-plugin/.claude-plugin/plugin.json", "integrations/n8n/README.md", "integrations/n8n/package.json",
+    "integrations/openclaw/skill/agent-data-tools/SKILL.md", "integrations/openclaw/bundle/skills/agent-data-tools/SKILL.md", "clients/agent-data-tools/README.md"];
+  let counts = 0;
+  for (const file of files) {
+    const text = read(file);
+    // "670+ pay-per-call ... tools", "More than 670 tools", "about 670 tools": a round figure at or just under the count.
+    for (const match of text.matchAll(/(?:(\d{3})\+ pay-per-call|More than (\d{3}) tools|\(about (\d{3}) tools\))/g)) {
+      const n = Number(match[1] ?? match[2] ?? match[3]);
+      counts++;
+      assert.ok(n <= m.TOOL_COUNT && n > m.TOOL_COUNT - 20, `${file}: "${match[0]}" beside a catalogue of ${m.TOOL_COUNT} tools`);
+    }
+    // "and 650+ more", "about 650 more": never more than the catalogue holds.
+    for (const match of text.matchAll(/(?:and|about) (\d{3})\+? more/g)) { counts++; assert.ok(Number(match[1]) < m.TOOL_COUNT, `${file}: "${match[0]}" beside a catalogue of ${m.TOOL_COUNT} tools`); }
+    for (const match of text.matchAll(/fixed price, from (\$\d+(?:\.\d+)?)/g)) assert.equal(match[1], m.LOWEST_PRICE, `${file}: ${match[0]}`);
+  }
+  assert.ok(counts >= 8, `figures checked: ${counts}`);
+});
+
+test("the chain-check guide and the chain client state each operation's catalogue price, and the client's cap allows it", () => {
+  const guide = read("docs/chain-checks.md");
+  const core = read("clients/chain/core.mjs");
+  const help = /Every buy also requires --max-usdc: ([^.]*(?:\.\d+[^.]*)*)\. Quotes/.exec(core)[1];
+  let rows = 0;
+  for (const row of guide.matchAll(/^\| `([a-z]+)` \| `(\/[a-z0-9/-]+)` \| [^|]* \| \$(\d+(?:\.\d+)?) \|$/gm)) {
+    rows++;
+    const [, op, toolPath, stated] = row;
+    const price = usd(byPath[toolPath].price);
+    assert.equal(Number(stated), price, `docs/chain-checks.md: ${op} is ${toolPath} at ${byPath[toolPath].price}`);
+    // The cap the client accepts for this operation (atomic USDC, six decimals) is at least the price.
+    const cap = new RegExp(`${op}: \\{ path: "${toolPath}", maxAtomic: (\\d+)n`).exec(core);
+    assert.ok(cap, `clients/chain/core.mjs has the operation ${op}`);
+    assert.ok(Number(cap[1]) / 1e6 >= price, `chain client caps ${op} at ${Number(cap[1]) / 1e6}, under the price ${price}`);
+    // Every documented buy of this operation passes a cap that covers the price and that the client accepts.
+    for (const buy of guide.matchAll(new RegExp(`buy ${op}\\b[^\\n]*--max-usdc (\\d+(?:\\.\\d+)?)`, "g"))) {
+      assert.ok(Number(buy[1]) >= price, `docs/chain-checks.md: "buy ${op} --max-usdc ${buy[1]}" is under the price ${price}`);
+      assert.ok(Number(buy[1]) <= Number(cap[1]) / 1e6, `docs/chain-checks.md: "buy ${op} --max-usdc ${buy[1]}" is over the client's cap`);
+    }
+    assert.ok(new RegExp(`${op}(?:/[a-z]+)* <=${Number(cap[1]) / 1e6}(?![\\d.])`).test(help) || new RegExp(`[a-z]+/${op} <=${Number(cap[1]) / 1e6}(?![\\d.])`).test(help), `chain client help states the ${op} cap ${Number(cap[1]) / 1e6}: ${help}`);
+  }
+  assert.equal(rows, 4);
+  assert.ok(read("README.md").includes(`a wallet snapshot **${byPath["/wallet"].price}**`), "README states the wallet snapshot price");
+});
+
+test("a network a chain input names is a network the chain tools have", () => {
+  // Words that name a network, wherever a chain or network input lists its values.
+  const known = new Set([...m.CHAINS, ...m.EXTRA_CHAINS].flatMap((c) => [c.slug, c.name.toLowerCase()]));
+  for (const extra of ["ethereum", "arbitrum", "optimism", "solana", "tempo", "bitcoin"]) known.add(extra);
+  // Networks the service does not read: a listing that offers one of these as a value promises a network no handler has.
+  const absent = ["bsc", "bnb", "binance", "blast", "fantom", "tron", "ton", "aptos", "sui", "near", "cosmos", "starknet", "moonbeam", "cronos", "kava", "metis", "taiko", "zora", "mode", "worldchain", "abstract", "monad", "plasma"];
+  let checked = 0;
+  for (const e of m.ENDPOINTS) {
+    for (const [name, p] of Object.entries(e.params)) {
+      if (!/^(chain|chains|network|networks)$/.test(name)) continue;
+      // LI.FI tools (bridge and swap quotes) take LI.FI's own chain list, which is read live from LI.FI.
+      // So do the tools that read DefiLlama's files, which carry every chain DefiLlama tracks.
+      if (/^\/(bridge|swap|lifi)\//.test(e.path) || /LI\.FI|DefiLlama/i.test(e.description)) continue;
+      checked++;
+      const words = p.description.toLowerCase().split(/[^a-z0-9]+/);
+      for (const w of words) assert.ok(!absent.includes(w), `${e.path}: ${name} names ${w}, a network no chain tool reads`);
+      if (p.enum) for (const v of p.enum) assert.ok(known.has(String(v).toLowerCase()), `${e.path}: ${name} enum value ${v} is not a network of the chain tools`);
+    }
+  }
+  assert.ok(checked >= 20, `chain inputs checked: ${checked}`);
 });

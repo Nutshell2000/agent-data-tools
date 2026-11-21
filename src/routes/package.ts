@@ -1,5 +1,6 @@
 import { HttpError } from "../lib/env";
-import { sourceJson } from "../lib/source-json";
+import { jsonWithin, sourceJson } from "../lib/source-json";
+import { API_UA } from "../lib/outbound-ua";
 
 // deps.dev (Google Open Source Insights): free, keyless, data under CC-BY 4.0.
 const DEPS = "https://api.deps.dev/v3";
@@ -9,7 +10,7 @@ const DAY = 86_400_000;
 async function deps<T>(path: string): Promise<T | null> {
   let res: Response;
   try {
-    res = await fetch(`${DEPS}/${path}`, { signal: AbortSignal.timeout(8_000), headers: { "user-agent": "AgentDataTools/1.0" } });
+    res = await fetch(`${DEPS}/${path}`, { signal: AbortSignal.timeout(8_000), headers: { "user-agent": API_UA } });
   } catch {
     throw new HttpError(502, "the package data source did not respond");
   }
@@ -45,7 +46,7 @@ const daysSince = (iso?: string) => (iso ? Math.floor((Date.now() - Date.parse(i
 async function npmWeeklyDownloads(name: string): Promise<number | null> {
   try {
     const res = await fetch(`https://api.npmjs.org/downloads/point/last-week/${name}`, { signal: AbortSignal.timeout(5_000) });
-    return res.ok ? ((await res.json()) as { downloads?: number }).downloads ?? null : null;
+    return res.ok ? ((await jsonWithin(res)) as { downloads?: number }).downloads ?? null : null;
   } catch {
     return null;
   }

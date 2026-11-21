@@ -186,8 +186,10 @@ test('sign-up: off unless switched on with a sender; one message, a link that sh
   assert.equal(mail.length, 0);
 
   const info = await (await get(on, '/keys/free')).json();
-  assert.equal(info.callsEachMonth, credits.FREE_KEY_CALLS);
-  assert.equal(credits.FREE_KEY_CALLS, 100);
+  // 25 a month since 21 Nov 2026 ("very minimal"): the number is FREE_KEY_CALLS_PER_MONTH in lib/free-calls.ts.
+  const { FREE_KEY_CALLS_PER_MONTH } = await load(require.resolve('../src/lib/free-calls.ts'));
+  assert.equal(FREE_KEY_CALLS_PER_MONTH, 25);
+  assert.equal(info.callsEachMonth, FREE_KEY_CALLS_PER_MONTH);
 
   assert.equal((await post(on, 'not an address')).status, 400);
   const sent = await post(on, 'Ada+n8n@Example.com');
@@ -205,7 +207,7 @@ test('sign-up: off unless switched on with a sender; one message, a link that sh
   assert.equal((await get(on, `/keys/free/confirm?token=${'x'.repeat(43)}`)).status, 400);
   const shown = await (await get(on, link)).json();
   assert.match(shown.apiKey, /^adt_/);
-  assert.equal(shown.callsEachMonth, 100);
+  assert.equal(shown.callsEachMonth, FREE_KEY_CALLS_PER_MONTH);
   // 19 Nov 2026: buying credits from the confirm page must top up THIS key, not issue a new one. The pack/plan links
   // carry client_reference_id=topup_<hash of this key>, the same mechanism the claim page uses.
   const hash = await credits.hashCreditKey(shown.apiKey);

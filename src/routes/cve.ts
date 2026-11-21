@@ -13,12 +13,14 @@
  */
 import { entry, need, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { API_UA } from "../lib/outbound-ua";
+import { jsonWithin, sourceShape } from "../lib/source-json";
 
 type Fetcher = (url: string, init?: RequestInit) => Promise<Response>;
 
 const RECORD_API = "https://cveawg.mitre.org/api/cve/";
 const EPSS_API = "https://api.first.org/data/v1/epss?cve=";
-const UA = { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)", accept: "application/json" };
+const UA = { "user-agent": API_UA, accept: "application/json" };
 export const CVE_SOURCE = "CVE Program record (cve.org), CISA Vulnrichment and KEV, FIRST EPSS";
 
 /** "CVE-2021-44228", "cve 2021 44228", "2021-44228" or a cve.org / nvd.nist.gov link -> "CVE-2021-44228"; null when no ID is in it. */
@@ -138,7 +140,7 @@ export async function epssFor(id: string, fetcher: Fetcher = fetch): Promise<Eps
   try {
     const res = await fetcher(`${EPSS_API}${id}`, { headers: UA, signal: AbortSignal.timeout(3_000), cf: { cacheTtl: 21_600, cacheEverything: true } } as RequestInit);
     if (!res.ok) return null;
-    const row = ((await res.json()) as { data?: { epss?: string; percentile?: string; date?: string }[] }).data?.[0];
+    const row = ((await jsonWithin(res)) as { data?: { epss?: string; percentile?: string; date?: string }[] }).data?.[0];
     const probability = Number(row?.epss), percentile = Number(row?.percentile);
     if (!row || !Number.isFinite(probability) || !Number.isFinite(percentile)) return null;
     return { probability, percentile, date: row.date ?? null };
@@ -160,11 +162,15 @@ export async function cveRecord(id: string, fetcher: Fetcher = fetch, sleep: (ms
   if (res.status === 404) throw new HttpError(404, `no public CVE record ${id} (unknown, or reserved and not yet published); nothing was charged`);
   if (res.status === 429) throw new HttpError(503, "the CVE Program's record service is busy; not charged, try again in a minute", "CVE_BUSY");
   if (!res.ok) throw new HttpError(502, `the CVE Program's record service answered HTTP ${res.status}; not charged, try again`);
+  let record: CveRecord;
   try {
-    return (await res.json()) as CveRecord;
+    record = await jsonWithin<CveRecord>(res);
   } catch {
     throw new HttpError(502, "the CVE Program's record service sent an unreadable answer; not charged, try again");
   }
+  // 21 Nov 2026: a body that parsed but is not a record (null, a list, no metadata) was our 500, or a record with every
+  // field empty sold as the answer.
+  return sourceShape(record, "the CVE Program's record service", { "cveMetadata.cveId": "string" });
 }
 
 export const CVE: Entry[] = [

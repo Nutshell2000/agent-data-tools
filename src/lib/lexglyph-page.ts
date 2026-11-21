@@ -10,7 +10,10 @@
 //   every piece of text not in the page language, contrast >= 7:1 in both themes, 44-48 px targets, no sideways scroll.
 // - Interface in six languages (lexglyph-i18n.ts), chosen by ?lang= or the browser; legal text is never translated by
 //   us: the official EUR-Lex text in the visitor's language is linked instead.
-// - The plain-words answer is on by default; one click turns it off.
+// - The free page costs nothing metered (21 Nov 2026, the owner's rule): its search is keyword-only, D1 full-text
+//   search with no model call and no Vectorize query (lawKeywordDeps, seKeywordDeps). So it has no plain-words
+//   answer, no search by meaning and no translation of the question; those are in the paid API (/law/search with
+//   answer=true), which the page names. The renderer still knows how to show an answer; this page never gives it one.
 // - Free for people within LEXGLYPH_PER_VISITOR searches a day per visitor (hashed address, never stored as is) and
 //   LEXGLYPH_DAILY_CAP in total; software uses the paid API (/law/search) like every other tool.
 // - Every claim on the page is measured (benchmarks page, multilingual run of 16 Nov 2026) or stated as a limit.
@@ -20,17 +23,17 @@ import { COMPANY_FOOTER } from "./legal";
 import { publicBrand } from "./public-brand";
 import { takeDailyBudget } from "./daily-cap";
 import { HttpError, type Env } from "./env";
-import { INDEXED_LANGS, LAW_ACTS, actOf, answerFromArticles, eurlexIn, inLanguage, lawAnswer, lawDeps, lawSearch, questionLang, sourcesOf } from "../routes/law-search";
+import { INDEXED_LANGS, LAW_ACTS, actOf, eurlexIn, inLanguage, lawAnswer, lawKeywordDeps, lawSearch, questionLang } from "../routes/law-search";
 import { MORE, STRINGS, UI_LANGS, UI_LANG_NAMES, languageName, pickUiLang, type UiLang } from "./lexglyph-i18n";
-import type { GroundedClaim, GroundSource } from "./law-grounding";
-import { caseParaUrl, caseSource, caseTitle, casesForArticle, seDeps, seLabel, seSearch, seSource, swedishImplementations, type CaseRef, type SeSection } from "../routes/law-layers";
+import type { GroundedClaim } from "./law-grounding";
+import { caseParaUrl, caseTitle, casesForArticle, seKeywordDeps, seLabel, seSearch, swedishImplementations, type CaseRef, type SeSection } from "../routes/law-layers";
 
 export const LEXGLYPH_PATH = "/lexglyph";
 export const LEXGLYPH_SECURITY_PATH = "/lexglyph/security";
 export const LEXGLYPH_VERSION_PATH = "/lexglyph/version";
 export const LEXGLYPH_EXPORT_PATH = "/lexglyph/export";
 export const LEXGLYPH_PER_VISITOR = 20;
-export const LEXGLYPH_DAILY_CAP = 2000;
+export const LEXGLYPH_DAILY_CAP = 500;
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const jsonLd = (value: unknown) => JSON.stringify(value).replace(/</g, "\\u003c");
 
@@ -124,7 +127,7 @@ export function lexglyphPage(origin: string, brand: string, s: LexState = {}): s
   const dateForm = (r: LawResult) => `<form method="get" action="${LEXGLYPH_VERSION_PATH}" class="ondate"><input type="hidden" name="lang" value="${ui}"><input type="hidden" name="act" value="${esc(r.short)}"><input type="hidden" name="article" value="${esc(r.label.replace(/^Article /, ""))}"><label>${esc(more.onDate)} <input type="date" name="date" required max="${new Date().toISOString().slice(0, 10)}"></label> <button type="submit" class="tool">${esc(more.onDateGo)}</button></form>`;
   // The official text in the asker's language: the question's language, else the interface language, unless English.
   const officialCode = s.qLang && s.qLang.eurlex !== "EN" ? s.qLang.eurlex : ui !== "en" ? ui.toUpperCase() : null;
-  const keep = (lang: UiLang) => `${LEXGLYPH_PATH}?${new URLSearchParams({ lang, ...(s.q ? { q: s.q } : {}), ...(s.act ? { act: s.act } : {}), ...(s.q && !s.explain ? { explain: "0" } : {}) })}`;
+  const keep = (lang: UiLang) => `${LEXGLYPH_PATH}?${new URLSearchParams({ lang, ...(s.q ? { q: s.q } : {}), ...(s.act ? { act: s.act } : {}) })}`;
   const results = s.results ?? [];
   const resultHtml = results.map((r, i) => {
     // The text shown is in the reader's language where the index holds it (Swedish); its link opens the same language.
@@ -176,8 +179,6 @@ ${exportForm()}</div>`
 <input id="q" name="q" type="search" required maxlength="400" value="${esc(s.q ?? "")}" placeholder="${esc(t.placeholder)}" autocomplete="off" aria-describedby="qhelp" aria-keyshortcuts="/">
 <label for="act" class="sr">${esc(t.act)}</label>
 <select id="act" name="act">${actOptions}</select>
-<input type="hidden" name="explain" value="0">
-<label class="explain"><input type="checkbox" name="explain" value="1"${s.q && !s.explain ? "" : " checked"}> ${esc(t.explain)}</label>
 <button type="submit" class="btn primary">${esc(t.search)}</button>
 </form>
 <p id="qhelp" class="note">${esc(t.help)} ${esc(t.notAdvice)} <span class="js" hidden>${esc(t.shortcut)}.</span></p>
@@ -194,7 +195,7 @@ ${seHtml}
 <h2>For developers and AI agents</h2>
 <ul>
 <li>API: <code>GET ${esc(origin)}/law/search?q=…</code>, $0.005 a search, pay per call or with a key. <a href="/eu-law-search-api">API details and plans</a>.</li>
-<li>Grounded answers for your own app: add <code>answer=true</code>; every sentence comes with the quote it rests on and a pinpoint citation. Swedish text: <code>lang=sv</code>.</li>
+<li>The search on this page matches words and is free. The API also searches by meaning, takes a question in any EU language and, with <code>answer=true</code>, writes a plain-words answer in which every sentence comes with the quote it rests on and a pinpoint citation. Swedish text: <code>lang=sv</code>.</li>
 <li>MCP: add <code>${esc(origin)}/mcp</code> to your AI assistant and ask it EU-law questions.</li>
 </ul>
 </section>
@@ -234,16 +235,18 @@ async function visitorKey(ip: string | undefined, day: string) {
   return `lexglyph:${day}:${[...new Uint8Array(digest)].slice(0, 12).map((b) => b.toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** The page for a GET: no question renders the start page; a question runs the search within the free allowance. */
+/**
+ * The page for a GET: no question renders the start page; a question runs the keyword search within the free
+ * allowance. Nothing here calls a model or Vectorize (tests/free-metered.test.cjs reads this function's source).
+ */
 export async function lexglyphHtml(env: Env, origin: string, params: URLSearchParams, ip: string | undefined, acceptLanguage?: string): Promise<string> {
   const brand = publicBrand(env, SERVICE_NAME);
   const ui = pickUiLang(params.get("lang"), acceptLanguage);
   const t = STRINGS[ui];
   const q = (params.get("q") ?? "").trim().slice(0, 400);
   const actRaw = (params.get("act") ?? "").trim();
-  // The checkbox sends explain=1 after a hidden explain=0, so the last value counts; no value at all means on.
-  const ex = params.getAll("explain");
-  const explain = ex.length ? ex[ex.length - 1] === "1" : true;
+  // No plain-words answer on the free page (it would be a model call); old links with explain=1 just search.
+  const explain = false;
   if (!q) return lexglyphPage(origin, brand, { ui, act: actRaw || undefined });
   let act;
   try { act = actRaw ? actOf(actRaw) : undefined; } catch { return lexglyphPage(origin, brand, { ui, q, explain, error: t.notAct }); }
@@ -255,7 +258,7 @@ export async function lexglyphHtml(env: Env, origin: string, params: URLSearchPa
   if (used >= LEXGLYPH_PER_VISITOR) return lexglyphPage(origin, brand, { ui, q, act: act?.short, explain, qLang, error: t.limit(LEXGLYPH_PER_VISITOR), left: 0 });
   try {
     await takeDailyBudget(env, "lexglyph", env.LEXGLYPH_DAILY_CAP, LEXGLYPH_DAILY_CAP, "LexGlyph");
-    const deps = lawDeps(env);
+    const deps = lawKeywordDeps(env);
     const found = await lawSearch(q, { act, count: 5, lang: ql.iso }, deps);
     // The provisions in the question's language where the index holds it (Swedish), so answers quote that text.
     const textLang = INDEXED_LANGS.includes(qLang.tag) ? qLang.tag : "en";
@@ -264,19 +267,15 @@ export async function lexglyphHtml(env: Env, origin: string, params: URLSearchPa
     // Phase B layers (18 Nov 2026): judgments on each article found, Swedish statutes implementing the acts found, and
     // Swedish sections when the question or the interface is Swedish. A layer that fails is left out, never the page.
     const db = env.LAW_DB!;
-    const se = seDeps(env);
+    const se = seKeywordDeps(env);
     const wantSe = qLang.tag === "sv" || ui === "sv";
     const [cases, seImpl, seHits] = await Promise.all([
       Promise.all(out.results.map((r) => (r.kind === "article" ? casesForArticle(db, r.short, r.label.replace(/^Article /, ""), 3).catch(() => [] as CaseRef[]) : Promise.resolve([] as CaseRef[])))),
       swedishImplementations(db, out.results.map((r) => r.short)).catch(() => []),
       wantSe && se ? seSearch(q, se, 3).catch(() => [] as SeSection[]) : Promise.resolve([] as SeSection[]),
     ]);
-    // The answer may quote the EU provisions, the two best Swedish sections and the leading judgment paragraph on each of
-    // the first two articles; every quote is checked against the text it came from.
-    const sources: GroundSource[] = [...sourcesOf(out.results), ...seHits.slice(0, 2).map(seSource), ...cases.slice(0, 2).flatMap((l) => l.slice(0, 1)).filter((c) => c.text).map(caseSource)];
-    const answered = explain && out.results.length ? await answerFromArticles(env, q, sources, { plain: true }).catch(() => null) : null;
     await env.TRIALS?.put(key, String(used + 1), { expirationTtl: 2 * 86400 }).catch(() => {});
-    return lexglyphPage(origin, brand, { ui, q, act: act?.short, explain, qLang, results: out.results, answer: answered?.grounded ? answered.answer : null, claims: answered?.claims ?? [], grounded: answered ? answered.grounded : undefined, cases, seImpl, se: seHits, left: env.TRIALS ? LEXGLYPH_PER_VISITOR - used - 1 : null });
+    return lexglyphPage(origin, brand, { ui, q, act: act?.short, explain, qLang, results: out.results, answer: null, claims: [], cases, seImpl, se: seHits, left: env.TRIALS ? LEXGLYPH_PER_VISITOR - used - 1 : null });
   } catch (e) {
     const busy = e instanceof HttpError && (e.status === 503 || e.status === 502);
     return lexglyphPage(origin, brand, { ui, q, act: act?.short, explain, qLang, error: busy ? t.busy : t.failed });

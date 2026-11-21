@@ -33,7 +33,7 @@ Portable packages install disabled, so the second command is needed. The tools a
 
 ## What it costs
 
-- **Free to try.** `find_tool` and `tool_details` are always free. The first 25 successful `call_tool` calls need no
+- **Free to try.** `find_tool` and `tool_details` are always free. The first 10 successful `call_tool` calls on tools that only compute or look up public data (not AI, speech, transcription, images, rendering, search or resold data) need no
   key and no sign-up, and failed calls are never counted. The free calls cover the tools `find_tool` marks
   `inFreeCalls`: reading pages and PDFs, prices, weather, chain reads, checks, lookups and the converters. Search,
   rendered pages, screenshots, speech, image and large-model tools cost us money per call and need a key from the first

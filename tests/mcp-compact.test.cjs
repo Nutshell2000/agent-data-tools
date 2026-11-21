@@ -96,10 +96,10 @@ test('find_tool answers a job in plain words with names, prices and inputs, and 
     assert.equal(none.isError, true);
     assert.match(textOf(none), /Nothing was charged/);
   }, { ip: '203.0.113.11' });
-  // Finding and reading details did not use a free call: all 25 are still there for this caller.
+  // Finding and reading details did not use a free call: all 10 are still there for this caller.
   await withClient(async (client) => {
     const first = await call(client, 'call_tool', { name: 'hash', arguments: { text: 'hello' } });
-    assert.match(textOf(first), /\(24 of 25 free calls left/);
+    assert.match(textOf(first), /\(9 of 10 free calls left/);
   }, { ip: '203.0.113.11' });
 });
 
@@ -129,7 +129,7 @@ test('call_tool runs the tool on a free call, and refuses a wrong name or bad ar
     const ok = await call(client, 'call_tool', { name: 'hash', arguments: { text: 'hello' } });
     assert.ok(!ok.isError);
     assert.ok(textOf(ok).includes(SHA_HELLO));
-    assert.match(textOf(ok), /\(24 of 25 free calls left/);
+    assert.match(textOf(ok), /\(9 of 10 free calls left/);
     // Refused before the tool: unknown name, a write tool, a missing required input, a wrong type.
     for (const [args, pattern] of [
       [{ name: 'no_such_tool', arguments: {} }, /no tool named/],
@@ -143,7 +143,7 @@ test('call_tool runs the tool on a free call, and refuses a wrong name or bad ar
     }
     // None of the refusals used a free call: the next good call is the second.
     const again = await call(client, 'call_tool', { name: '/hash', arguments: { text: 'hello' } });
-    assert.match(textOf(again), /\(23 of 25 free calls left/);
+    assert.match(textOf(again), /\(8 of 10 free calls left/);
   }, { ip: '203.0.113.13' });
 });
 

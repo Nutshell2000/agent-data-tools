@@ -13,7 +13,7 @@ import { SPEECH_VOICES } from "../routes/ai-text";
 import { elevenVoice } from "./voice-fronts";
 import { SPEECH_INPUT_LIMIT, withXiKey } from "./openai-speech";
 import { SPEECH_CREDITS_PER_100 } from "./voice-billing";
-import { VOICE_TEST_CALLS, VOICE_TEST_SPEECH_CHARS } from "./voice-keys";
+import { VOICE_TEST_CALLS, VOICE_TEST_SPEECH_CHARS, voiceTestKeysOn } from "./voice-keys";
 import { apiKeyFrom } from "./credits";
 import { forwardedHeaders } from "./paying-request";
 
@@ -103,7 +103,7 @@ export async function elevenSubscription(c: C, forward: Forward): Promise<{ sub:
   const headers = withXiKey(forwardedHeaders(c.req.raw));
   const key = apiKeyFrom((n) => headers.get(n) ?? undefined);
   const origin = new URL(c.req.url).origin;
-  if (!key) return unauthorized(c, `Send a Glyphcall key as xi-api-key (get one at ${origin}/credits; a free voice test key may be available at ${origin}/keys/voice-test).`);
+  if (!key) return unauthorized(c, `Send a Glyphcall key as xi-api-key (get one at ${origin}/credits${voiceTestKeysOn(c.env) ? `; a free voice test key comes from POST ${origin}/keys/voice-test` : ""}).`);
   const inner = new Headers({ "x-api-key": key, accept: "application/json" });
   const answer = await forward(new Request(`${origin}/credits/balance`, { headers: inner }));
   const body = (await answer.json().catch(() => null)) as Record<string, unknown> | null;

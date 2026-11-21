@@ -3,10 +3,12 @@
 // registration (RFC 7591) and authorization code + PKCE S256. The "account" is a card-credit key: the
 // person pastes it on our sign-in page, or continues without one and gets the free calls. /mcp stays
 // open; /mcp/account (and /mcp/account/<section>) requires a token and is what directories list.
+import { FREE_NOT_FOR, FREE_TOOLS_KIND } from "./free-calls";
 import { Hono, type Context } from "hono";
 import type { Env } from "./env";
 import { hashCreditKey, isCreditKey } from "./credits";
-import { FREE_CALLS_PER_CALLER, callerHash } from "./free-calls";
+import { FREE_CALLS_PER_CALLER, callerHash, utcDay } from "./free-calls";
+import { clientExpired } from "./oauth-clients";
 
 type C = Context<{ Bindings: Env }>;
 const store = (env: Env) => env.METRICS?.get(env.METRICS.idFromName("credits"));
@@ -15,13 +17,19 @@ const origin = (c: C) => new URL(c.req.url).origin;
 type Store = NonNullable<ReturnType<typeof store>>;
 const oget = async <T>(s: Store, k: string) => (await s.oauthGet(k)) as T | null;
 const otake = async <T>(s: Store, k: string) => (await s.oauthTake(k)) as T | null;
+/**
+ * Stores a code or a hashed token so that it is removed once it has expired (lib/oauth-clients.ts). If that fails for
+ * any reason the record is stored the old way: a sign-in comes before housekeeping.
+ */
+const oputExpiring = <T extends { expiresAt: number }>(s: Store, k: string, value: T) => s.oauthPutExpiring(k, value, value.expiresAt)
+  .catch(async (e: unknown) => { console.error("oauth: storing a record with its expiry failed; storing it without", e); await s.oauthPut(k, value); });
 
 const CODE_TTL = 10 * 60_000;
 const ACCESS_TTL = 30 * 24 * 3600_000;
 const REFRESH_TTL = 365 * 24 * 3600_000;
 export const TOKEN_PREFIX = "adtok_";
 
-export interface Client { clientId: string; clientName: string; redirectUris: string[]; createdAt: string }
+export interface Client { clientId: string; clientName: string; redirectUris: string[]; createdAt: string; /** Set while no sign-in was completed (lib/oauth-clients.ts). */ unusedUntil?: number }
 interface Grant { key: string | null; sub: string; clientId: string }
 interface Code extends Grant { redirectUri: string; challenge: string; expiresAt: number }
 interface Token extends Grant { expiresAt: number }
@@ -89,7 +97,8 @@ async function checkAuthorize(env: Env, p: Partial<AuthorizeParams>): Promise<{ 
   const s = store(env);
   if (!s) return { error: "sign-in is unavailable right now", redirectable: false };
   const client = p.client_id ? await oget<Client>(s, `client:${p.client_id}`) : null;
-  if (!client) return { error: "unknown client_id; the app must register first", redirectable: false };
+  // A registration that was never used and is past its time is gone (lib/oauth-clients.ts), also before it is removed.
+  if (!client || clientExpired(client, Date.now())) return { error: "unknown client_id; the app must register first", redirectable: false };
   if (!p.redirect_uri || !client.redirectUris.includes(p.redirect_uri)) return { error: "redirect_uri is not registered for this client", redirectable: false };
   if (p.response_type !== "code") return { error: "unsupported_response_type", redirectable: true };
   if (!p.code_challenge || p.code_challenge_method !== "S256") return { error: "invalid_request: PKCE with S256 is required", redirectable: true };
@@ -109,9 +118,13 @@ function authorizeForm(o: string, client: Client, p: AuthorizeParams, error?: st
   const hidden = (["client_id", "redirect_uri", "state", "code_challenge", "code_challenge_method", "response_type"] as const)
     .map((k) => `<input type="hidden" name="${k}" value="${esc(p[k] ?? "")}">`).join("");
   const host = new URL(p.redirect_uri).host;
+  // Where the sign-in is sent afterwards, large and on its own: the app's name is whatever the app wrote at
+  // registration, so the address is the one thing on this page a person can check.
+  const returns = `<div class="box" id="returns-to"><small>After you continue, your browser goes to</small><br><strong style="font-size:1.3rem;overflow-wrap:anywhere">${esc(host)}</strong><br><small>Continue only if this is the app you are connecting.</small></div>`;
   if (fromChatGpt(p.redirect_uri)) {
     return page("Connect · Agent Data Tools", `<h1>Connect Agent Data Tools</h1>
 <p><strong>${esc(client.clientName)}</strong> wants to use Agent Data Tools for you. You will return to <strong>${esc(host)}</strong>.</p>
+${returns}
 <p>Agent Data Tools looks up public data: sanctions lists, company and domain records, public blockchain data, currency rates, weather and more. It only reads; nothing is bought, sent or changed, and no account or payment is needed.</p>
 <form method="post" action="/oauth/authorize">${hidden}
 <div class="box"><button type="submit" name="mode" value="free">Continue</button></div>
@@ -120,12 +133,13 @@ function authorizeForm(o: string, client: Client, p: AuthorizeParams, error?: st
   }
   return page("Sign in · Agent Data Tools", `<h1>Sign in to Agent Data Tools</h1>
 <p><strong>${esc(client.clientName)}</strong> wants to use Agent Data Tools for you. You will return to <strong>${esc(host)}</strong>.</p>
+${returns}
 ${error ? `<p class="err">${esc(error)}</p>` : ""}
 <form method="post" action="/oauth/authorize">${hidden}
 <div class="box"><label for="key"><strong>Your API key</strong> (from <a href="${o}/credits" target="_blank">card credits</a>, starts with <code>adt_</code>)</label>
 <input type="text" id="key" name="key" autocomplete="off" spellcheck="false" placeholder="adt_…">
 <button type="submit" name="mode" value="key">Sign in with key</button></div>
-<div class="box"><p>No key yet? Continue with ${FREE_CALLS_PER_CALLER} free calls. You can buy credits later at <a href="${o}/credits" target="_blank">${esc(o.replace(/^https?:\/\//, ""))}/credits</a> and sign in again.</p>
+<div class="box"><p>No key yet? Continue with ${FREE_CALLS_PER_CALLER} free calls on ${FREE_TOOLS_KIND} (${FREE_NOT_FOR}). You can buy credits later at <a href="${o}/credits" target="_blank">${esc(o.replace(/^https?:\/\//, ""))}/credits</a> and sign in again.</p>
 <button class="alt" type="submit" name="mode" value="free">Continue with free calls</button></div>
 </form>`);
 }
@@ -141,8 +155,8 @@ async function issueTokens(env: Env, grant: Grant) {
   const access = TOKEN_PREFIX + random(32);
   const refresh = "adtref_" + random(32);
   const now = Date.now();
-  await s.oauthPut(`access:${await sha256url(access)}`, { ...grant, expiresAt: now + ACCESS_TTL } satisfies Token);
-  await s.oauthPut(`refresh:${await sha256url(refresh)}`, { ...grant, expiresAt: now + REFRESH_TTL } satisfies Token);
+  await oputExpiring(s, `access:${await sha256url(access)}`, { ...grant, expiresAt: now + ACCESS_TTL } satisfies Token);
+  await oputExpiring(s, `refresh:${await sha256url(refresh)}`, { ...grant, expiresAt: now + REFRESH_TTL } satisfies Token);
   return { access_token: access, token_type: "Bearer", expires_in: ACCESS_TTL / 1000, refresh_token: refresh, scope: "tools" };
 }
 
@@ -176,7 +190,17 @@ oauth.post("/oauth/register", async (c) => {
   }
   const clientName = typeof body.client_name === "string" && body.client_name.trim() ? body.client_name.trim().slice(0, 80) : "An AI app";
   const client: Client = { clientId: "adtc_" + random(18), clientName, redirectUris: uris, createdAt: new Date().toISOString() };
-  await s.oauthPut(`client:${client.clientId}`, client);
+  // Stored with a daily limit per network address and for everybody together, and an expiry while unused
+  // (lib/oauth-clients.ts, 21 Nov 2026). Without a known address only the total applies: a missing header must not
+  // lock an app out.
+  const ip = (c.req.header("cf-connecting-ip") ?? "").trim();
+  // If the bounded store fails for any reason, the client is stored the old way: sign-in comes before housekeeping.
+  const stored = await s.oauthRegisterClient({ client, address: ip ? await callerHash(ip) : null, day: utcDay(), now: Date.now() })
+    .catch(async (e: unknown) => { console.error("oauth: bounded registration failed; storing the client without a limit", e); await s.oauthPut(`client:${client.clientId}`, client); return "ok" as const; });
+  if (stored === "limit") {
+    console.warn("oauth: registration limit reached today");
+    return c.json({ error: "temporarily_unavailable", error_description: "too many client registrations today (from this network address, or in total); try again after 00:00 UTC" }, 429, { "Retry-After": "3600" });
+  }
   return c.json({
     client_id: client.clientId, client_name: clientName, redirect_uris: uris, token_endpoint_auth_method: "none",
     grant_types: ["authorization_code", "refresh_token"], response_types: ["code"], client_id_issued_at: Math.floor(Date.now() / 1000),
@@ -216,7 +240,7 @@ oauth.post("/oauth/authorize", async (c) => {
   // sign-in would hand out a fresh set of free calls every time the person reconnects.
   const sub = key ? `key:${await hashCreditKey(key)}` : `anon:${await callerHash(c.req.header("cf-connecting-ip") ?? "unknown")}`;
   const code = "adtcode_" + random(24);
-  await s.oauthPut(`code:${await sha256url(code)}`, { key, sub, clientId: p.client_id, redirectUri: p.redirect_uri, challenge: p.code_challenge, expiresAt: Date.now() + CODE_TTL } satisfies Code);
+  await oputExpiring(s, `code:${await sha256url(code)}`, { key, sub, clientId: p.client_id, redirectUri: p.redirect_uri, challenge: p.code_challenge, expiresAt: Date.now() + CODE_TTL } satisfies Code);
   return c.redirect(redirectWith(p.redirect_uri, { code, state: p.state }), 302);
 });
 
@@ -231,6 +255,8 @@ oauth.post("/oauth/token", async (c) => {
     if (!code || code.expiresAt < Date.now()) return bad("invalid_grant", "unknown or expired code");
     if (code.clientId !== form.client_id || code.redirectUri !== form.redirect_uri) return bad("invalid_grant", "client_id or redirect_uri does not match");
     if (!form.code_verifier || (await sha256url(form.code_verifier)) !== code.challenge) return bad("invalid_grant", "PKCE verification failed");
+    // A sign-in was completed: the client is kept from now on. A failure to note that must not fail the sign-in.
+    await s.oauthClientUsed(code.clientId).catch((e: unknown) => { console.error("oauth: marking the client as used failed", e); });
     return c.json(await issueTokens(c.env, { key: code.key, sub: code.sub, clientId: code.clientId }));
   }
   if (form.grant_type === "refresh_token") {

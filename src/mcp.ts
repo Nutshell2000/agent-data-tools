@@ -1,3 +1,4 @@
+import { loggable } from "./lib/url-keys";
 import { pickFields } from "./lib/fields";
 import { ALIAS_OF, normalizedInput } from "./tools";
 import { mcpClientName } from "./lib/caller";
@@ -35,6 +36,8 @@ import type { RegisteredTool } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { COMPACT_BUNDLE, COMPACT_CAPPED_BUNDLE, COMPACT_PRICE_CEILING, COMPACT_TOOLS, aboveCompactCeiling, annotationsFor, compactPricePermits, compactReach, directoryToolDescription, mcpName, protocolTool, toolDescription, toolInputShape, toolName } from "./mcp-contract";
 import { relatedTools } from "./lib/related";
 import { TOOLS } from "./tools";
+import { freeEligible } from "./lib/capacity";
+import { FREE_NOT_FOR, FREE_TOOLS_KIND } from "./lib/free-calls";
 import { bazaarInputProperties, builderCodeExtension, exampleInput, listingDescription, listingName, listingNameFor, listingOutputSchema, listingTags } from "./lib/bazaar-extension";
 import { salesOrdered } from "./lib/discovery-index";
 import { EXTRA_CHAIN_PATHS } from "./routes/chain-reads";
@@ -71,7 +74,7 @@ async function runTool(env: Env, e: Endpoint & { path: EndpointPath }, args: Arg
     const { imageBase64: _image, audioBase64: _audio, pdfBase64: _pdf, ...structuredContent } = result as Record<string, unknown>;
     return { content: toContent(result), structuredContent };
   } catch (err) {
-    if (!(err instanceof HttpError)) console.error(err);
+    if (!(err instanceof HttpError)) console.error(loggable(err));
     return { isError: true, content: [{ type: "text", text: err instanceof HttpError ? err.message : isUpstreamFailure(err) ? "an outside data source did not respond in time; not charged, try again" : "internal error" }], ...(err instanceof HttpError && err.code ? { structuredContent: { error: err.message, code: err.code } } : {}) };
   }
 }
@@ -199,7 +202,7 @@ function registerCompactTools(
   const unknown = (name: string) => compactText({ error: `no tool named ${JSON.stringify(name.slice(0, 80))} on this server. Nothing was charged.`, next: "call find_tool with the job in plain words to get the right name" }, true);
   const priced = (e: Endpoint) => {
     const withKey = keyPriceFor(e.path, e.price);
-    return { tool: toolName(e), title: e.summary, price: e.price, ...(withKey ? { priceWithKey: withKey } : {}), inFreeCalls: !CAPACITY_LIMITED.has(e.path), ...(aboveCompactCeiling(priceFor(e)) ? { needsMaxPrice: priceFor(e) } : {}) };
+    return { tool: toolName(e), title: e.summary, price: e.price, ...(withKey ? { priceWithKey: withKey } : {}), inFreeCalls: freeEligible(e.path), ...(aboveCompactCeiling(priceFor(e)) ? { needsMaxPrice: priceFor(e) } : {}) };
   };
   const annotations = { readOnlyHint: true, destructiveHint: false, openWorldHint: true };
 
@@ -230,7 +233,7 @@ function registerCompactTools(
   // On /mcp the old name stays callable beside the listed one.
   for (const name of surface ? [details, COMPACT_TOOLS[1]] : [details]) registered[name] = mcp.tool(
     name,
-    "Everything needed to call one tool: what it does, every input with its type, whether it is required and an example value, the price per successful call (and the lower price with a prepaid key where there is one), whether it is in the free calls, an example call and the shape of its answer. Free. Take the name from find_tool.",
+    "Everything needed to call one tool: what it does, every input with its type, whether it is required and an example value, the price per successful call (and the lower price with a prepaid key where there is one), whether it is in the free calls (they run tools that only compute or look up public data), an example call and the shape of its answer. Free. Take the name from find_tool.",
     { name: z.string().min(1).max(120).describe("The tool's name from find_tool, for example weather_forecast") },
     { title: "Inputs, price and example of one tool", ...annotations, idempotentHint: true, openWorldHint: false },
     async ({ name }) => {
@@ -258,7 +261,7 @@ function registerCompactTools(
 
   registered.call_tool = mcp.tool(
     "call_tool",
-    `Run one of this service's tools by name. Costs that tool's own price per successful call (most $0.01; ${capped ? `never more than ${COMPACT_PRICE_CEILING}; ` : ""}${details} and find_tool show it); a failed call costs nothing, and tools marked inFreeCalls run free while the caller has free calls left. Pass the tool's inputs as "arguments". If you do not know the name or the inputs, call find_tool or ${details} first: a wrong name or a missing input is refused before anything is charged.${capped ? "" : ` A tool that costs more than ${COMPACT_PRICE_CEILING} a call (find_tool marks it needsMaxPrice) runs only when you pass that price as "max_price"; without it the call is refused, uncharged, and the refusal states the price.`}`,
+    `Run one of this service's tools by name. Costs that tool's own price per successful call (most $0.01; ${capped ? `never more than ${COMPACT_PRICE_CEILING}; ` : ""}${details} and find_tool show it); a failed call costs nothing, and tools marked inFreeCalls (${FREE_TOOLS_KIND}; ${FREE_NOT_FOR}) run free while the caller has free calls left. Pass the tool's inputs as "arguments". If you do not know the name or the inputs, call find_tool or ${details} first: a wrong name or a missing input is refused before anything is charged.${capped ? "" : ` A tool that costs more than ${COMPACT_PRICE_CEILING} a call (find_tool marks it needsMaxPrice) runs only when you pass that price as "max_price"; without it the call is refused, uncharged, and the refusal states the price.`}`,
     {
       name: z.string().min(1).max(120).describe("The tool's name from find_tool, for example weather_forecast"),
       arguments: z.record(z.string(), z.unknown()).optional().describe(`The tool's inputs as an object, for example {\"city\": \"Paris\"}. See ${details} for a tool's inputs`),
@@ -353,7 +356,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   // same rules (third-party API rights, payment-card data, hard-to-reverse writes) are in Anthropic's directory review (27 Oct 2026).
   // The ChatGPT plugin server has its own fixed list (lib/chatgpt-tools.ts): the tools OpenAI's rules allow and that cost
   // us nothing per call, because inside ChatGPT the service is free.
-  const offered = salesOrdered(directory ? ENDPOINTS.filter((e) => CHATGPT_TOOLS.has(e.path))
+  const offered = salesOrdered(directory ? ENDPOINTS.filter((e) => CHATGPT_TOOLS.has(e.path) && freeEligible(e.path))
     // Entry paths are second names for outside search engines; a signed-in user's assistant gets each tool once (1.111.5).
     : account ? sized.filter((e) => !GENERATIVE_MEDIA.has(e.path) && !DIRECTORY_EXCLUDED.has(e.path) && !Object.hasOwn(ENTRY_OF, e.path)) : sized);
   // call_tool is annotated read-only, so the compact server leaves out the four tools that write (memory, page publishing);
@@ -389,7 +392,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   const freeOnly = paid && !creditKey && Boolean(account);
   // Free calls per connection: an unpaid, keyless connection gets a signed token at initialize and sends it back as
   // Mcp-Session-Id (lib/free-sessions.ts). The transport stays stateless; the header is only the name of a counter.
-  // Free calls per connection stay OFF until the owner decides (the rule: 25 per caller); MCP_FREE_SESSIONS="on" enables them.
+  // Free calls per connection stay OFF until the owner decides (the rule: FREE_CALLS_PER_CALLER per caller); MCP_FREE_SESSIONS="on" enables them.
   const freeSession = x402 && c.req.method === "POST" && (env as { MCP_FREE_SESSIONS?: string }).MCP_FREE_SESSIONS === "on" ? await freeSessionFor(env, c.req.header("mcp-session-id"), () => c.req.raw.clone().text()) : {};
   let paymentReady: ReturnType<typeof paymentState> | undefined;
   const payment = () => (paymentReady ??= paymentState(env));
@@ -403,7 +406,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
   const trackedFor = (e: Endpoint) => {
     const handler = (args: Args) => runTool(env, e, args);
     const callback = creditKey
-      ? (args: Args) => creditCharger(env, creditKey, keyPrice(e.path, e.price), origin, directory, !CAPACITY_LIMITED.has(e.path))(() => handler(args))
+      ? (args: Args) => creditCharger(env, creditKey, keyPrice(e.path, e.price), origin, directory, freeEligible(e.path), !freeEligible(e.path))(() => handler(args))
       : x402
       ? async (args: Args, extra: unknown) => {
           const wrapped = paymentWrapperFor(e, await payment(), serviceIconUrl(env.PUBLIC_SITE_ORIGIN, SERVICE_ICON_URL))(handler as never) as (args: Args, extra: unknown) => Promise<{
@@ -421,7 +424,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
       ? async () => ({ isError: true, content: [{ type: "text", text: directory
           // True for both limits (this account's, and the total for all ChatGPT users together).
           ? `Today's call limit is reached (${CHATGPT_CALLS_PER_DAY} calls a day per account). It resets at 00:00 UTC. Nothing was run.`
-          : `${CAPACITY_LIMITED.has(e.path) ? "This tool is not included in the free calls." : "The free calls for this account are used up."} ${cardStep(origin, Boolean(env.STRIPE_READ_KEY))}` }] })
+          : `${freeEligible(e.path) ? "The free calls for this account are used up." : `This tool is not included in the free calls: they run ${FREE_TOOLS_KIND}.`} ${cardStep(origin, Boolean(env.STRIPE_READ_KEY))}` }] })
       : handler;
     const tracked = async (args: Args, extra: unknown) => withToolTrace(e.path, async () => {
       const meta = (extra as { _meta?: Record<string, unknown> })?._meta;
@@ -430,8 +433,8 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
       try {
         // An unpaid call from a caller with free calls left runs free (lib/free-calls.ts); a failure gives it back.
         let freePaused = false;
-        const free = directory ? await useDailyCall(env, caller ?? "unknown", CHATGPT_CALLS_PER_DAY, CHATGPT_CALLS_TOTAL_PER_DAY, () => { freePaused = true; })
-          : (x402 || freeOnly) && !paidAttempt && !CAPACITY_LIMITED.has(e.path) ? await useFreeCall(env, caller, () => { freePaused = true; }, undefined, freeSession.id, "mcp") : null;
+        const free = !freeEligible(e.path) ? null : directory ? await useDailyCall(env, caller ?? "unknown", CHATGPT_CALLS_PER_DAY, CHATGPT_CALLS_TOTAL_PER_DAY, () => { freePaused = true; })
+          : (x402 || freeOnly) && !paidAttempt ? await useFreeCall(env, caller, () => { freePaused = true; }, undefined, freeSession.id, "mcp") : null;
         // Free calls that cannot be counted today are not "used up": a signed-in caller without credits is told when they return.
         if (freePaused && freeOnly && !x402) return { isError: true, content: [{ type: "text" as const, text: directory ? "Calls cannot be counted right now, so none can run. Please try again later. Nothing was run." : `${freeCallsPausedNote()} Nothing was charged and no free call was used.` }] };
         const result = free
@@ -449,7 +452,7 @@ export async function handleMcp(c: Context<{ Bindings: Env }>, bundle = "", urlK
         const response = result as typeof result & {content?: unknown[]};
         // A quote: the x402 terms stay first for x402 clients; the plain-language card option follows for
         // agents whose client cannot pay, so they can tell their user how to unlock the tool.
-        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: `${freePaused ? `${freeCallsPausedNote()} ` : ""}${paymentHint(origin, e.price, Boolean(account), Boolean(env.STRIPE_READ_KEY), keyPrice(e.path, e.price))}` }]
+        const hint = !paidAttempt && result.isError && result.structuredContent?.accepts ? [{ type: "text", text: `${freePaused ? `${freeCallsPausedNote()} ` : ""}${paymentHint(origin, e.price, Boolean(account), Boolean(env.STRIPE_READ_KEY), keyPrice(e.path, e.price), freeEligible(e.path))}` }]
           : free && !result.isError && !directory ? [{ type: "text", text: freeCallNote(free.left, origin) }] : [];
         const requestMeta = directory ? {} : { requestId: trace?.requestId };
         if ("outputSchema" in e && response.isError && response.structuredContent) {

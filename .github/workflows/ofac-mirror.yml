@@ -20,6 +20,8 @@ on:
 jobs:
   mirror:
     runs-on: ubuntu-latest
+    # 21 Nov 2026: downloads and builds a few list files; a source that hangs must not hold a runner for six hours.
+    timeout-minutes: 45
     permissions:
       contents: write # Create and update the ofac-latest release
     # 21 Nov 2026 (safety audit): the write token is given only to the two steps that upload release files, never to

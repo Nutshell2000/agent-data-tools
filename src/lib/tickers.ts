@@ -21,6 +21,32 @@ export const TICKERS: Record<string, Record<string, Address>> = {
     UNI: "0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0", PENDLE: "0x0c880f6761F1af8d9Aa9C466984b80DAb9a8c9e8" },
   polygon: { WETH: "0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619", USDC: "0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359", USDT: "0xc2132D05D31c914a87C6611C10748AEb04B58e8F", WBTC: "0x1BFD67037B42Cf73acF2047067bd4F2C47D9BfD6", DAI: "0x8f3Cf7ad23Cd3CaDbD9735AFf958023239c6A063", WPOL: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270", LINK: "0x53E0bca35eC356BD5ddDFebbD1Fc0fD03FaBad39", AAVE: "0xD6DF932A45C0f255f85145f286eA0b292B21C90B" },
   op: { WETH: "0x4200000000000000000000000000000000000006", USDC: "0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85", USDT: "0x94b008aA00579c1307B0EF2c499aD98a8ce58e58", OP: "0x4200000000000000000000000000000000000042", DAI: "0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1", WBTC: "0x68f180fcCe6836688e9084f035309E29Bf0A2095", LINK: "0x350a791Bfc2C21F9Ed5d10980Dad2e2638ffa7f6" },
+  // The later networks (21 Nov 2026). An address is here only when (1) the network's own documentation or the token
+  // issuer's own page states it, and (2) the contract's symbol() and decimals() read on that network that day match the
+  // ticker. Left out on purpose: bridged tokens whose symbol differs from the ticker (WETH.e and DAI.e on Avalanche,
+  // USD₮ on Celo, USD₮0 on Unichain, HyperEVM, Berachain, Ink and Sei), Mantle's USDT (its token list has two), and every
+  // token of zkSync Era and HyperEVM (no official page with the full address was found), where USDC stays the only
+  // ticker. USDC repeats the address the per-network tools already used (chain-reads.ts USDC; a test keeps them equal);
+  // on Gnosis, Berachain and Ink that contract is the bridged USDC.e. No aliases: a native coin is not its wrapped token.
+  // Sources: tether.to/en/supported-protocols (USDT, Avalanche); github.com/ava-labs/wrapped-assets (WAVAX);
+  // docs.gnosischain.com/bridges (WXDAI, WETH, USDT); github.com/Consensys/linea-token-list (Linea);
+  // docs.scroll.io/en/developers/scroll-contracts and github.com/scroll-tech/token-list (Scroll);
+  // docs.mantle.xyz/governance/parameters/tokenomics and github.com/mantlenetworkio/mantle-token-lists (Mantle);
+  // docs.celo.org/contracts/core-contracts (CELO); docs.soniclabs.com/sonic/build-on-sonic/contract-addresses (Sonic);
+  // the Unichain contract-addresses page (WETH9 predeploy); docs.berachain.com/developers/deployed-contracts and
+  // github.com/berachain/metadata (Berachain); docs.inkonchain.com/useful-information/contracts (WETH9 predeploy);
+  // docs.sei.io/evm/querying-the-evm (WSEI).
+  avax: { USDC: "0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E", USDT: "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7", WAVAX: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7" },
+  gnosis: { USDC: "0x2a22f9c3b484c3629090FeED35F17Ff8F88f76F0", USDT: "0x4ECaBa5870353805a9F068101A40E0f32ed605C6", WETH: "0x6A023CCd1ff6F2045C3309768eAd9E68F978f6e1", WXDAI: "0xe91D153E0b41518A2Ce8Dd3D7944Fa863463a97d" },
+  linea: { USDC: "0x176211869cA2b568f2A7D4EE941E073a821EE1ff", USDT: "0xA219439258ca9da29E9Cc4cE5596924745e12B93", WETH: "0xe5D7C2a44FfDDf6b295A15c148167daaAf5Cf34f", DAI: "0x4AF15ec2A0BD43Db75dd04E62FAA3B8EF36b00d5" },
+  scroll: { USDC: "0x06eFdBFf2a14a7c8E15944D1F4A48F9F95F663A4", USDT: "0xf55BEC9cafDbE8730f096Aa55dad6D22d44099Df", WETH: "0x5300000000000000000000000000000000000004", DAI: "0xcA77eB3fEFe3725Dc33bccB54eDEFc3D9f764f97" },
+  mantle: { USDC: "0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9", WETH: "0xdEAddEaDdeadDEadDEADDEAddEADDEAddead1111", WMNT: "0x78c1b0C915c4FAA5FffA6CAbf0219DA63d7f4cb8" },
+  celo: { USDC: "0xcebA9300f2b948710d2653dD7B07f33A8B32118C", CELO: "0x471EcE3750Da237f93B8E339c536989b8978a438" },
+  sonic: { USDC: "0x29219dd400f2Bf60E5a23d13Be72B486D4038894", WETH: "0x50c42dEAcD8Fc9773493ED674b675bE577f2634b", WS: "0x039e2fB66102314Ce7b64Ce5Ce3E5183bc94aD38" },
+  unichain: { USDC: "0x078D782b760474a361dDA0AF3839290b0EF57AD6", WETH: "0x4200000000000000000000000000000000000006" },
+  bera: { USDC: "0x549943e04f40284185054145c6E4e9568C1D3241", WETH: "0x2F6F07CDcf3588944Bf4C42aC74ff24bF56e7590", WBERA: "0x6969696969696969696969696969696969696969" },
+  ink: { USDC: "0xF1815bd50389c46847f0Bda824eC8da914045D14", WETH: "0x4200000000000000000000000000000000000006" },
+  sei: { USDC: "0xe15fC38F6D8c56aF07bbCBe3BAf5708A2Bf42392", WSEI: "0xE30feDd158A2e3b13e9badaeABaFc5516e95e8C7" },
 };
 const ALIASES: Record<string, Record<string, string>> = {
   base: { ETH: "WETH", BTC: "CBBTC", SOL: "USOL", XRP: "CBXRP" },
@@ -55,6 +81,26 @@ export const coinIdTicker = (input: string): string | undefined => {
   const id = input.trim().toLowerCase().replace(/^coingecko:/, "").replace(/\s+/g, "-");
   return Object.hasOwn(COIN_IDS, id) ? COIN_IDS[id] : undefined;
 };
+
+/**
+ * The tickers a listing may name for a network: those of `wanted` that this network's table resolves, in the order
+ * given. USDC is always first: every network's token tools resolve it (this table, or the USDC table of chain-reads.ts
+ * on the networks that have no table here). The per-network listings are written with this, so a ticker is named only
+ * where it resolves (tests/listing-truth.test.cjs holds that).
+ */
+export function listedTickers(slug: string, wanted: readonly string[]): string[] {
+  const table = Object.hasOwn(TICKERS, slug) ? TICKERS[slug] : {};
+  return ["USDC", ...wanted.filter((t) => t !== "USDC" && Object.hasOwn(table, t.toUpperCase()))];
+}
+/** "USDC, USDT or WETH" for a listing sentence; "USDC" alone where it is the only ticker. */
+export function tickerWords(slug: string, wanted: readonly string[]): string {
+  const names = listedTickers(slug, wanted);
+  return names.length > 1 ? `${names.slice(0, -1).join(", ")} or ${names[names.length - 1]}` : names[0];
+}
+/** "a ticker such as USDC or WETH" where several resolve, "the ticker USDC" where it is the only one. */
+export function tickerClause(slug: string, wanted: readonly string[]): string {
+  return listedTickers(slug, wanted).length > 1 ? `a ticker such as ${tickerWords(slug, wanted)}` : "the ticker USDC";
+}
 
 /** Whether the input is a ticker (or coin name) this network's table knows. Addresses are never "known tickers". */
 export function knowsTicker(input: string, slug: string): boolean {

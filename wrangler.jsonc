@@ -48,18 +48,20 @@
   // (node scripts/analytics-queries.mjs prints the queries).
   "analytics_engine_datasets": [{ "binding": "ANALYTICS", "dataset": "glyphcall_events" }],
   "vars": {
-    // Free keys by e-mail, 100 calls a month (owner, 14 Nov 2026: "Yes, 100 a month"; "Yes, use funwords.eu now").
-    // Anything but "on" switches the offer and its links off. Move the sender when the product domain has mail.
-    "FREE_KEYS": "on",
+    // Free keys by e-mail (src/lib/free-keys.ts). OFF since 21 Nov 2026 (the owner: a free user must cost nothing
+    // metered): each sign-up sends a message through the e-mail binding, up to 300 a day, and sent mail is billed per
+    // message once the plan's included volume is used. No new keys are issued; keys already issued keep working on
+    // the tools the free calls run. Anything but "on" switches the offer and its links off.
+    "FREE_KEYS": "off",
     "FREE_KEY_FROM": "keys@tools.funwords.eu",
-    // Free voice keys without e-mail (lib/voice-keys.ts, 16 Nov 2026). Anything but "on" switches a route off (404) and
-    // stops its keys at once. Both are ON here. Limits cut on 21 Nov 2026 (safety audit: the old limits allowed about
-    // $3.50 a day against a $10-a-month ceiling): 10 test keys and 100 speech calls a day, so the worst day is about
-    // $0.37 for test keys (100 speech calls x $0.003 + 250 calls x $0.00026) and about $0.05 for trial keys.
-    // To stop them without a release: the `voice-keys` off-switch (src/lib/switches.ts).
-    "VOICE_TEST_KEYS": "on",
+    // Free voice keys without e-mail (lib/voice-keys.ts, 16 Nov 2026). Both OFF since 21 Nov 2026 (the owner: a free
+    // user must cost nothing metered; every call of such a key ran a speech or transcription model). Anything but
+    // "on" refuses POST /keys/voice-test and POST /credits/trial without writing anything, stops issued keys at once,
+    // and makes the GET descriptions say that no free key is offered and where a paid key comes from. The two
+    // numbers below only matter if a route is switched on again.
+    "VOICE_TEST_KEYS": "off",
     "VOICE_TEST_KEYS_PER_DAY": "10",
-    "CREDITS_TRIAL": "on",
+    "CREDITS_TRIAL": "off",
     "CREDITS_TRIAL_MINUTES": "60",
     // Address that receives every payment (USDC on Base).
     "PAY_TO": "0x6293ded2684f1a76e26becef87c137d691fbf800",
@@ -97,7 +99,9 @@
     "FACILITATOR_URL": "https://api.cdp.coinbase.com/platform/v2/x402",
     // "off" disables the paywall (local testing only).
     "PAYWALL": "on",
-    // Free calls (src/lib/free-calls.ts): 25 per caller, automatic over MCP, trial=1 over HTTP.
+    // Free calls (src/lib/free-calls.ts): 10 per caller automatic over MCP, 3 per caller with trial=1 over HTTP, 500 a
+    // day in total, and only on tools outside FREE_EXCLUDED_METERED (src/lib/capacity.ts): nothing that can spend
+    // model money, browser rendering, paid search or resold data. So a free call costs requests only.
     // Without the exact value "on", every unpaid call receives the normal payment challenge.
     "TRIALS_ENABLED": "on",
     // The capped free PDF try for browsers (src/lib/pdf-try.ts): 2 pages a read, 3 a visitor, 150 a day in total.
@@ -110,12 +114,15 @@
     // the tool answers 503, uncharged, above the cap or when the credits are gone. The key is the secret SEARCH_API_KEY.
     // Raised to 1,000 on 27 Oct 2026 (owner: "fix it all"): web search is the biggest paid category on the Bazaar
     // (StableEnrich exa/search: 161 payers, 30k calls/30 days) and 120 a day would turn away a repeat buyer on day one.
-    // Every search-backed tool is paid (CAPACITY_LIMITED: no free calls), so each call nets about $0.004 after Brave.
-    "SEARCH_DAILY_CAP": "1000",
+    // Every search-backed tool is paid (FREE_EXCLUDED_METERED: no free path reaches it), so each call nets about $0.004
+    // after Brave. Lowered to 200 on 21 Nov 2026 (the owner): at most $1 of search spend a day, all of it paid for.
+    "SEARCH_DAILY_CAP": "200",
     // Spend caps that matter on Workers Paid, where Workers AI and Browser Rendering are billed per use (on the free plan
     // the platform's own daily allowances stop them first). Workers AI calls per UTC day: 1,000 of the 8B chat model cost
     // about $0.30-1.00 and earn $10 at $0.01 a call. Hosted-browser launches per UTC day: 60 short sessions stay inside the
     // 10 browser-hours a month the paid plan includes. Over a cap the tool answers 503, uncharged (src/lib/daily-cap.ts).
+    // Unchanged on 21 Nov 2026: no free path reaches a model or the browser any more, so these two caps bound paid
+    // calls only, and every paid call earns more than it costs.
     "AI_DAILY_CAP": "1000",
     "BROWSER_DAILY_CAP": "200",
     // Stripe profile (@spellzz) for MPP card payments of credit packs; the key is the secret STRIPE_MPP_KEY.

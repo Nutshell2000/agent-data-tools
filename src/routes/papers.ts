@@ -1,11 +1,13 @@
 import { HttpError, type Env } from "../lib/env";
 import { CHAT_MODEL, chat } from "./ai-text";
+import { API_UA } from "../lib/outbound-ua";
+import { jsonWithin } from "../lib/source-json";
 
 // OpenAlex ranks by relevance and citations and finds well-known papers reliably.
 // Crossref is the fallback: broader, but its ranking is weaker and it rate-limits.
 const OPENALEX = "https://api.openalex.org/works";
 const CROSSREF = "https://api.crossref.org/works";
-const HEADERS = { "user-agent": "AgentDataTools/1.0" };
+const HEADERS = { "user-agent": API_UA };
 
 interface Paper {
   title: string;
@@ -65,7 +67,7 @@ async function fromOpenAlex(query: string, limit: number, fromYear: number | nul
   // A key that is not activated yet, or revoked, is refused: ask again without it (the shared keyless budget).
   if ((res.status === 401 || res.status === 403) && keyed && openAlexKey) return fromOpenAlex(query, limit, fromYear, false);
   if (!res.ok) throw new Error(`OpenAlex HTTP ${res.status}`);
-  const body = (await res.json()) as { meta?: { count?: number }; results?: OpenAlexWork[] };
+  const body = (await jsonWithin(res)) as { meta?: { count?: number }; results?: OpenAlexWork[] };
   const results: Paper[] = (body.results ?? []).map((w) => ({
     title: w.title ?? "(untitled)",
     authors: (w.authorships ?? []).slice(0, 8).map((a) => a.author?.display_name ?? "").filter(Boolean),
@@ -101,7 +103,7 @@ async function fromCrossref(query: string, limit: number, fromYear: number | nul
   if (fromYear) url.searchParams.set("filter", `from-pub-date:${fromYear}`);
   const res = await fetch(url, { signal: AbortSignal.timeout(8_000), headers: HEADERS });
   if (!res.ok) throw new Error(`Crossref HTTP ${res.status}`);
-  const body = (await res.json()) as { message?: { "total-results"?: number; items?: CrossrefWork[] } };
+  const body = (await jsonWithin(res)) as { message?: { "total-results"?: number; items?: CrossrefWork[] } };
   const results: Paper[] = (body.message?.items ?? []).map((w) => ({
     title: plain(w.title?.[0]) ?? "(untitled)",
     authors: (w.author ?? []).slice(0, 8).map((a) => a.name ?? [a.given, a.family].filter(Boolean).join(" ")),

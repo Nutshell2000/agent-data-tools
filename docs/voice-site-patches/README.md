@@ -33,11 +33,15 @@ browser.
 
 ## Worker settings that must be on first
 
-- `CREDITS_TRIAL` = `"on"` (wrangler var). It is `"off"` in `wrangler.jsonc` (production) and `"on"` in
+Both settings below are off everywhere since 21 Nov 2026 (a free user must cost nothing metered, and a trial file
+or a test key runs a transcription or speech model). Do not install `transcribe-trial.patch` while `CREDITS_TRIAL`
+is off: the button would only show the refusal.
+
+- `CREDITS_TRIAL` = `"on"` (wrangler var). It is `"off"` in `wrangler.jsonc` (production) and in
   `wrangler.staging.jsonc`. While it is off, `POST /credits/trial` answers 404 with a sentence and the button shows it.
 - `CREDITS_TRIAL_MINUTES` (default 200): audio minutes all trials together may use per UTC day.
-- The guides mention `POST /keys/voice-test`; that needs `VOICE_TEST_KEYS` = `"on"`. Both guides word it as
-  "when the offer is on", so they are true either way.
+- The two migration guides no longer mention `POST /keys/voice-test` (`VOICE_TEST_KEYS` is off): they name the
+  paid key only.
 - The live script calls `https://agent-data-tools.revmesh2074.workers.dev`; the Worker allows any origin (CORS `*`).
 
 ## Test on staging

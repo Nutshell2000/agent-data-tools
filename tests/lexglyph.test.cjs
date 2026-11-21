@@ -36,8 +36,9 @@ test("the start page: one h1, a labelled search form that works without JavaScri
   assert.doesNotMatch(html, /noindex/);
   assert.match(html, /aria-live="polite"/);
   // The plain-words answer is on unless the visitor turned it off; the hidden 0 makes "off" survive the form.
-  assert.match(html, /<input type="hidden" name="explain" value="0">/);
-  assert.match(html, /name="explain" value="1" checked/);
+  // The free page is a keyword search (21 Nov 2026): no plain-words answer to switch on, and it says where one is.
+  assert.doesNotMatch(html, /name="explain"/);
+  assert.match(html, /The search on this page matches words and is free\. The API also searches by meaning/);
 });
 
 test("every interface language has every string, and the browser's language picks it", () => {

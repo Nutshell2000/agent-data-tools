@@ -122,10 +122,28 @@ export async function seSearch(q: string, deps: SeDeps, count = 3): Promise<SeSe
   return ids.map((id) => rows.find((r) => r.id === id)).filter((r): r is SeSection => Boolean(r));
 }
 
+/** The part that reads D1 only: Swedish sections by keyword (FTS5) and their rows. */
+function seTextDeps(db: D1Database): Pick<SeDeps, "keywords" | "rows"> {
+  return {
+    async keywords(match, limit) {
+      const r = await db.prepare("SELECT id FROM se_sections_fts WHERE se_sections_fts MATCH ? ORDER BY bm25(se_sections_fts, 0, 2.0, 3.0, 1.0) LIMIT ?").bind(match, limit).all<{ id: string }>();
+      return (r.results ?? []).map((x) => x.id);
+    },
+    async rows(ids) { return (await db.prepare(`SELECT * FROM se_sections WHERE id IN (${ids.map(() => "?").join(",")})`).bind(...ids).all<SeSection>()).results ?? []; },
+  };
+}
+
+/** Keyword-only Swedish search (21 Nov 2026), for the free LexGlyph page: D1 only, no embedding and no Vectorize query. */
+export function seKeywordDeps(env: Pick<Env, "LAW_DB">): SeDeps | null {
+  const db = env.LAW_DB;
+  return db ? { ...seTextDeps(db), embed: async () => [], vectors: async () => [] } : null;
+}
+
 export function seDeps(env: Env): SeDeps | null {
   const db = env.LAW_DB, index = env.SE_VECTORS;
   if (!db || !index) return null;
   return {
+    ...seTextDeps(db),
     async embed(q) {
       const out = await runAi<{ data?: number[][] }>(env, "@cf/baai/bge-m3", { text: [q.slice(0, 2000)] });
       const v = out.data?.[0];
@@ -133,11 +151,6 @@ export function seDeps(env: Env): SeDeps | null {
       return v;
     },
     async vectors(v, topK) { return (await index.query(v, { topK, returnMetadata: "none" })).matches.map((m) => m.id); },
-    async keywords(match, limit) {
-      const r = await db.prepare("SELECT id FROM se_sections_fts WHERE se_sections_fts MATCH ? ORDER BY bm25(se_sections_fts, 0, 2.0, 3.0, 1.0) LIMIT ?").bind(match, limit).all<{ id: string }>();
-      return (r.results ?? []).map((x) => x.id);
-    },
-    async rows(ids) { return (await db.prepare(`SELECT * FROM se_sections WHERE id IN (${ids.map(() => "?").join(",")})`).bind(...ids).all<SeSection>()).results ?? []; },
   };
 }
 

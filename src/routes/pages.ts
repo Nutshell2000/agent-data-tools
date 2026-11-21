@@ -9,6 +9,7 @@ import { entry, need, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { runAi } from "../lib/ai";
 import { GUARD_MODEL, guardVerdict } from "./safety";
+import { phishingLookup } from "../lib/phishing-list";
 
 // Not imported from endpoints.ts: that module imports this one through families.ts, so its constants are not set yet here.
 export const PUBLIC_ORIGIN = "https://agent-data-tools.revmesh2074.workers.dev";
@@ -47,7 +48,7 @@ export function sanitizeHtml(html: string): { html: string; text: string } {
     },
     ontext(t) { if (drop) return; out += esc(t); text += t; },
     onclosetag(name) {
-      if (drop) { if (DROP.has(name)) drop--; return; }
+      if (drop) { drop--; return; }
       if (!ALLOWED.has(name) || VOID.has(name)) return;
       const i = open.lastIndexOf(name);
       if (i < 0) return;
@@ -61,6 +62,49 @@ export function sanitizeHtml(html: string): { html: string; text: string } {
   return { html: out, text: text.replace(/[ \t]+/g, " ").split("\n").map((l) => l.trim()).join("\n").replace(/\n{3,}/g, "\n\n").trim() };
 }
 
+// ---- screening before a page is stored (21 Nov 2026) ----
+// The moderation model was shown the first 8,000 characters only, so a page could carry anything after a harmless
+// opening and be stored on the paid origin. Now every character that is stored is screened first.
+//  - The text goes to the model in pieces of SCREEN_CHUNK characters (the size the model has always been given here),
+//    each starting SCREEN_OVERLAP characters before the last one ended, so a sentence cut by a boundary is still read
+//    whole once.
+//  - One model call per piece, at most SCREEN_MAX_CALLS a page: a call of this tool is sold for one cent and every model
+//    call takes a place in the day's allowance (lib/ai.ts), so twenty-five calls for one page (200,000 characters) is
+//    not affordable. A page with more visible text than four pieces hold is refused, uncharged, rather than stored
+//    partly unread. Screening a sample of the pieces was the other choice; it was not taken because whatever is left
+//    out of the sample is exactly where unwanted text would be put.
+//  - Text a reader sees that is not body text (image descriptions, hover titles) is screened with the rest.
+//  - Links and images: a page that points at a host on the phishing lists the service already holds is refused.
+export const SCREEN_CHUNK = 8_000, SCREEN_OVERLAP = 200, SCREEN_MAX_CALLS = 4;
+/** The most text one page may hold and still be screened whole. */
+export const MAX_SCREENED_TEXT = SCREEN_CHUNK + (SCREEN_MAX_CALLS - 1) * (SCREEN_CHUNK - SCREEN_OVERLAP);
+/** The most different sites a page may link to: each one is a few list reads, and all of them are checked or none. */
+export const MAX_LINK_HOSTS = 50;
+
+/** The pieces the moderation model is given: all of the text, in order, overlapping by SCREEN_OVERLAP. */
+export function screenChunks(text: string): string[] {
+  const out: string[] = [];
+  for (let at = 0; ; at += SCREEN_CHUNK - SCREEN_OVERLAP) {
+    out.push(text.slice(at, at + SCREEN_CHUNK));
+    if (at + SCREEN_CHUNK >= text.length) return out;
+  }
+}
+
+const unesc = (s: string) => s.replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
+/** What the sanitised markup shows or points at besides its body text: attribute text, and the hosts of links and images. */
+export function pageExtras(cleanHtml: string): { attributeText: string; hosts: string[] } {
+  const words: string[] = [], hosts = new Set<string>();
+  for (const m of cleanHtml.matchAll(/ (alt|title|href|src)="([^"]*)"/g)) {
+    const value = unesc(m[2]);
+    if (m[1] === "alt" || m[1] === "title") { if (value.trim()) words.push(value.trim()); continue; }
+    try { const u = new URL(value); if (u.protocol === "http:" || u.protocol === "https:") hosts.add(u.hostname.toLowerCase()); } catch { /* an in-page #anchor */ }
+  }
+  return { attributeText: words.join("\n"), hosts: [...hosts] };
+}
+
+/** Looks one host up in the phishing lists; `null` when the lists cannot be read (not loaded, or not a domain name). */
+export type LinkCheck = (host: string) => Promise<{ listed: boolean } | null>;
+
 export type Page = { title: string; html: string; createdAt: string; expiresAt: string; bytes: number };
 type Kv = Pick<KVNamespace, "get" | "put">;
 export type Moderate = (text: string) => Promise<{ flagged: boolean; categories: { code: string; name: string }[] }>;
@@ -68,13 +112,27 @@ const ID = "abcdefghijkmnpqrstuvwxyz23456789"; // no 0/o/1/l
 export const newId = () => Array.from(crypto.getRandomValues(new Uint8Array(12)), (b) => ID[b % ID.length]).join("");
 
 /** Sanitise, screen and store one page; the moderation runner is a parameter so tests need no Workers AI. */
-export async function publishPage(kv: Kv | null, input: { html: string; title?: string; days?: number }, moderate: Moderate, origin = PUBLIC_ORIGIN) {
+export async function publishPage(kv: Kv | null, input: { html: string; title?: string; days?: number }, moderate: Moderate, origin = PUBLIC_ORIGIN,
+  // The lists live in the same KV namespace as the pages. Lists that are not loaded must not stop publishing, so a
+  // failed lookup is "not known" and the page goes on to moderation; a tool that sells the list check itself
+  // (/phishing/check) answers 503 in that case, this one does not sell it.
+  linkCheck: LinkCheck = (host) => phishingLookup(kv as unknown as Pick<KVNamespace, "get">, host).catch(() => null)) {
   if (!kv) throw new HttpError(503, "page storage is not available right now; nothing was charged");
   if (input.html.length > MAX_HTML) throw new HttpError(400, `html must be at most ${MAX_HTML} characters`);
   const clean = sanitizeHtml(input.html);
   if (!clean.text && !/<img /.test(clean.html)) throw new HttpError(400, "the page has no visible content after removing scripts, styles and unsupported tags");
   const title = (input.title ?? "").replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, MAX_TITLE) || (clean.text.split("\n")[0] ?? "").slice(0, MAX_TITLE) || "Untitled page";
-  const verdict = await moderate(`${title}\n\n${clean.text}`.slice(0, 8000));
+  const extras = pageExtras(clean.html);
+  const screened = `${title}\n\n${clean.text}${extras.attributeText ? `\n\n${extras.attributeText}` : ""}`;
+  if (screened.length > MAX_SCREENED_TEXT) throw new HttpError(400, `the page has ${screened.length.toLocaleString("en-US")} characters of visible text; content moderation reads at most ${MAX_SCREENED_TEXT.toLocaleString("en-US")} a page, so it was not published (nothing was charged). Split it into several pages.`);
+  if (extras.hosts.length > MAX_LINK_HOSTS) throw new HttpError(400, `the page links to ${extras.hosts.length} different sites; at most ${MAX_LINK_HOSTS} can be checked a page, so it was not published (nothing was charged). Split it into several pages.`);
+  // The list reads cost nothing, the model calls do: links first.
+  const checks = await Promise.all(extras.hosts.map(async (host) => ({ host, verdict: await linkCheck(host).catch(() => null) })));
+  const bad = checks.filter((c) => c.verdict?.listed).map((c) => c.host);
+  if (bad.length) throw new HttpError(422, `the page was not published: it links to ${bad.slice(0, 5).join(", ")}${bad.length > 5 ? ` and ${bad.length - 5} more` : ""}, listed as phishing (Phishing.Database, MetaMask eth-phishing-detect); nothing was charged`, "PAGE_REFUSED");
+  let verdict: Awaited<ReturnType<Moderate>> = { flagged: false, categories: [] };
+  // One piece at a time, and no further once one is flagged: a refused page costs no more calls than it has to.
+  for (const chunk of screenChunks(screened)) { verdict = await moderate(chunk); if (verdict.flagged) break; }
   if (verdict.flagged) throw new HttpError(422, `the page was not published: content moderation flagged ${verdict.categories.map((c) => c.name).join(", ") || "it"}; nothing was charged`, "PAGE_REFUSED");
   const days = Math.min(MAX_DAYS, Math.max(1, input.days ?? MAX_DAYS));
   const now = new Date();

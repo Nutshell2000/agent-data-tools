@@ -9,6 +9,8 @@
  */
 import { entry, getJson, need, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { API_UA } from "../lib/outbound-ua";
+import { jsonWithin } from "../lib/source-json";
 
 // ---------- LEI ----------
 interface LeiRecord {
@@ -105,7 +107,7 @@ export async function viesCheck(parts: { country: string; number: string }, fetc
         ? await fetcher(`${VIES_REST}/check-vat-number`, { method: "POST", headers: { accept: "application/json", "content-type": "application/json" }, body: JSON.stringify({ countryCode: parts.country, vatNumber: parts.number }), signal })
         : await fetcher(`${VIES_REST}/ms/${parts.country}/vat/${encodeURIComponent(parts.number)}`, { headers: { accept: "application/json" }, signal });
     } catch { problem = "VIES did not answer in time"; continue; }
-    const b = (await res.json().catch(() => null)) as ViesBody | null;
+    const b = (await jsonWithin(res).catch(() => null)) as ViesBody | null;
     const { valid, refused } = viesRead(b);
     if (res.ok && b && typeof valid === "boolean" && !refused) {
       const clean = (s?: string) => (s && s !== "---" ? s.replace(/\s*\n\s*/g, ", ").trim() : null);
@@ -139,10 +141,10 @@ export async function domainStatus(domain: string, fetcher: typeof fetch = fetch
   let why = "no RDAP for this TLD";
   try {
     // rdap.org answers 403 to requests without a User-Agent (6 Nov 2026).
-    const res = await fetcher(`https://rdap.org/domain/${domain}`, { headers: { accept: "application/rdap+json", "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" }, redirect: "follow", signal: AbortSignal.timeout(6_000) });
+    const res = await fetcher(`https://rdap.org/domain/${domain}`, { headers: { accept: "application/rdap+json", "user-agent": API_UA }, redirect: "follow", signal: AbortSignal.timeout(6_000) });
     const fromRegistry = !/^https:\/\/rdap\.org\//.test(res.url || "https://rdap.org/");
     if (res.status === 200) {
-      const b = (await res.json().catch(() => ({}))) as Rdap;
+      const b = (await jsonWithin(res).catch(() => ({}))) as Rdap;
       const ev = (a: string) => b.events?.find((e) => e.eventAction === a)?.eventDate?.slice(0, 10) ?? null;
       const registrar = b.entities?.find((e) => e.roles?.includes("registrar"))?.vcardArray?.[1]?.find((f) => f[0] === "fn")?.[3] ?? null;
       return { domain, status: "taken", method: "rdap", registrar, created: ev("registration"), expires: ev("expiration") };
@@ -156,7 +158,7 @@ export async function domainStatus(domain: string, fetcher: typeof fetch = fetch
   // No RDAP for this TLD (or it failed): name servers in DNS mean registered.
   try {
     const r = await fetcher(`https://cloudflare-dns.com/dns-query?name=${encodeURIComponent(domain)}&type=NS`, { headers: { accept: "application/dns-json" }, signal: AbortSignal.timeout(4_000) });
-    const d = (await r.json()) as { Status?: number };
+    const d = (await jsonWithin(r)) as { Status?: number };
     if (d.Status === 3) return { domain, status: "likely available", method: "dns", note: `${why}; the name does not exist in DNS, so it is probably unregistered (check with a registrar)` };
     if (d.Status === 0) return { domain, status: "taken", method: "dns" };
   } catch {

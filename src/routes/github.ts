@@ -14,7 +14,8 @@
  */
 import { entry, flag, need, num, opt, pick, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
-import { sourceJson } from "../lib/source-json";
+import { sourceJson, sourceList, sourceShape } from "../lib/source-json";
+import { API_UA } from "../lib/outbound-ua";
 
 const API = "https://api.github.com";
 const SOURCE = "GitHub REST API (public repository data)";
@@ -44,7 +45,7 @@ export async function github<T>(env: Pick<Env, "GITHUB_TOKEN">, path: string, fe
   const read = (token: string | undefined) => fetcher(`${API}${path}`, {
     headers: {
       accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28",
-      "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)",
+      "user-agent": API_UA,
       ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
     signal: AbortSignal.timeout(8_000),
@@ -93,6 +94,7 @@ export function languageShares(bytes: Record<string, number> | null): Record<str
 export async function repoFacts(env: Pick<Env, "GITHUB_TOKEN">, name: string, fetcher: Fetcher = fetch) {
   const repo = await github<Repo>(env, `/repos/${name}`, fetcher);
   if (!repo) throw new HttpError(404, `no public GitHub repository ${name}`);
+  sourceShape(repo, "GitHub", { full_name: "string" }); // 21 Nov 2026: an answer without the repository's name was our 500
   // The two extra reads are best effort: a repository without releases answers 404, and a failed read leaves the field null.
   const [languages, latest] = await Promise.all([
     github<Record<string, number>>(env, `/repos/${repo.full_name}/languages`, fetcher).catch(() => null),
@@ -132,7 +134,8 @@ export async function repoSearch(env: Pick<Env, "GITHUB_TOKEN">, query: string, 
 export async function repoReleases(env: Pick<Env, "GITHUB_TOKEN">, name: string, count: number, fetcher: Fetcher = fetch) {
   const list = await github<Release[]>(env, `/repos/${name}/releases?per_page=${count}`, fetcher);
   if (!list) throw new HttpError(404, `no public GitHub repository ${name}`);
-  const published = list.filter((r) => !r.draft).slice(0, count);
+  // 21 Nov 2026: an object where the list of releases belongs was our 500.
+  const published = sourceList<Release>(list, "GitHub").filter((r) => !r.draft).slice(0, count);
   return { repo: name, count: published.length, releases: published.map((r) => release(r, 1_500)), source: SOURCE, checkedAt: new Date().toISOString() };
 }
 
@@ -158,7 +161,8 @@ export async function accountRepos(env: Pick<Env, "GITHUB_TOKEN">, login: string
     github<{ type?: string; public_repos?: number }>(env, `/users/${login}`, fetcher).catch(() => null),
   ]);
   if (!list) throw new HttpError(404, `no public GitHub account ${login}`);
-  const own = list.filter((r) => includeForks || !r.fork);
+  // 21 Nov 2026: an object where the list of repositories belongs was our 500.
+  const own = sourceList<Repo>(list, "GitHub").filter((r) => includeForks || !r.fork);
   const languages: Record<string, number> = {};
   for (const r of own) if (r.language) languages[r.language] = (languages[r.language] ?? 0) + 1;
   const pushes = own.map((r) => r.pushed_at).filter((p): p is string => typeof p === "string").sort();

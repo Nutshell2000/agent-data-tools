@@ -6,8 +6,9 @@ import { HttpError } from "../lib/env";
 import { capBytes, parseTarget, refuseOwnHost } from "../lib/fetch";
 import { call, runSections } from "./packs";
 import { X402_CHECK } from "./x402-check";
+import { API_UA } from "../lib/outbound-ua";
 
-const UA = "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)";
+const UA = API_UA;
 async function getCapped(url: URL, init: RequestInit, limit: number) {
   // Never our own hosts (21 Nov 2026, lib/fetch.ts refuseOwnHost): these checks send up to twenty requests a call.
   refuseOwnHost(url);

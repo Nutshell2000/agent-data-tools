@@ -511,7 +511,8 @@ test('both free key routes are off unless their switch is on, and neither writes
         const res = await vk.voiceKeys.request(`https://api.test${path}`, { method }, env);
         assert.equal(res.status, 404, `${method} ${path}`);
         const body = await res.json();
-        assert.match(body.error, /not offered right now\. For /);
+        assert.match(body.error, /^(Free voice test keys are|A free transcription trial is) not offered\. /);
+        assert.match(body.error, /\/credits/);
         assert.equal(body.apiKey, undefined);
       }
     }

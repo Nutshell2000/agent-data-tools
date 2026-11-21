@@ -4,10 +4,11 @@
 // type and registration country. It is not city-level geolocation, and the copy says so. /geo/distance is local math.
 import { entry, num, opt, type Entry, type Input } from "../family";
 import { HttpError } from "../lib/env";
-import { sourceJson } from "../lib/source-json";
+import { jsonWithin, sourceJson } from "../lib/source-json";
 import { countryName } from "../lib/country-code";
 import { bigToIp, findInShard, isReservedIp, parseIp, shardIndex, shardKey } from "../lib/ip-geo";
 import { CITIES } from "./weather";
+import { API_UA } from "../lib/outbound-ua";
 
 // ---------- IP geolocation (DB-IP City Lite in KV, 1.84.1) ----------
 // Zero.xyz demand on 31 Oct 2026: "ip geolocation" 22 buyers in 90 days with 6 sellers; Bazaar "ip lookup" 49 payers.
@@ -159,10 +160,10 @@ export function fromWhois(ip: string, v: 4 | 6, data: { records?: WhoisLine[][];
 async function whoisFallback(ip: string, v: 4 | 6) {
   let res: Response;
   try {
-    res = await fetch(`https://stat.ripe.net/data/whois/data.json?resource=${ip}&sourceapp=agent-data-tools`, { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(6_000) });
+    res = await fetch(`https://stat.ripe.net/data/whois/data.json?resource=${ip}&sourceapp=agent-data-tools`, { headers: { accept: "application/json", "user-agent": API_UA }, signal: AbortSignal.timeout(6_000) });
   } catch { return null; }
   if (!res.ok) { await res.body?.cancel().catch(() => {}); return null; }
-  const body = (await res.json().catch(() => null)) as { data?: Parameters<typeof fromWhois>[2] } | null;
+  const body = (await jsonWithin(res).catch(() => null)) as { data?: Parameters<typeof fromWhois>[2] } | null;
   return body?.data ? fromWhois(ip, v, body.data) : null;
 }
 
@@ -211,7 +212,7 @@ export const GEO_IP: Entry[] = [
       let res: Response | undefined;
       for (let attempt = 0; attempt < 2; attempt++) {
         try {
-          res = await fetch(`https://rdap.org/ip/${ip}`, { headers: { accept: "application/rdap+json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(6_000) });
+          res = await fetch(`https://rdap.org/ip/${ip}`, { headers: { accept: "application/rdap+json", "user-agent": API_UA }, signal: AbortSignal.timeout(6_000) });
         } catch { res = undefined; continue; }
         // ARIN refuses Workers (525) every time, so a retry there only adds a second.
         if (res.status < 500 || /arin\.net/.test(res.url)) break;

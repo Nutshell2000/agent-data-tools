@@ -1,6 +1,6 @@
 ---
 name: agent-data-tools
-description: "Get live data and run hosted tools through the agent-data-tools MCP server: web search, the text of a web page or PDF, screenshots, weather, FX, stock and token prices, wallet and chain reads, sanctions, company and VAT checks, DNS and domain lookups, LLM chat, speech to text, and converters, hashes and calculators. Use when a task needs current information, the content of a URL, or a lookup or computation that no other connected tool does. Three tools: find_tool, tool_details, call_tool. 25 free calls, then a prepaid key pays per successful call."
+description: "Get live data and run hosted tools through the agent-data-tools MCP server: web search, the text of a web page or PDF, screenshots, weather, FX, stock and token prices, wallet and chain reads, sanctions, company and VAT checks, DNS and domain lookups, LLM chat, speech to text, and converters, hashes and calculators. Use when a task needs current information, the content of a URL, or a lookup or computation that no other connected tool does. Three tools: find_tool, tool_details, call_tool. 10 free calls on lookup and compute tools, then a prepaid key pays per successful call."
 ---
 
 # Agent Data Tools
@@ -52,7 +52,7 @@ the refusal lists the tool's inputs.
 
 ## What it costs
 
-- `find_tool` and `tool_details` are free. The first 25 successful `call_tool` calls from a caller are free and need no
+- `find_tool` and `tool_details` are free. The first 10 successful `call_tool` calls from a caller on tools that only compute or look up public data (not AI, speech, transcription, images, rendering, search or resold data) are free and need no
   key; failed calls are never counted or charged. The free calls cover the tools `find_tool` marks `inFreeCalls`.
   `search`, `extract_rendered`, `screenshot`, `transcribe` and the other tools that are not marked need a key
   from the first call.

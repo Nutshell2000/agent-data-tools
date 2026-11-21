@@ -64,7 +64,7 @@ check('numbers in the skill match the service', () => {
 	const count = Number(/^(\d+) pay-per-call tools/.exec(api.info.description)[1]);
 	assert.ok(count >= 680, `the service lists ${count} tools; the skill says more than 680`);
 	assert.match(api.info.description, /from \$0\.002 a call, most at \$0\.01/);
-	assert.match(api.info.description, /25 over MCP, 3 over HTTP/);
+	assert.match(api.info.description, /10 over MCP, 3 over HTTP/);
 	const price = (p) => api.paths[p].get['x-payment-info'].price.amount;
 	assert.equal(price('/credits/usdc/5'), '5.00');
 	assert.match(api.paths['/credits/usdc/1'].get.summary, /1,000 tool credits/);

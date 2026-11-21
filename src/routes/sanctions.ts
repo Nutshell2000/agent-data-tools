@@ -296,12 +296,12 @@ export const SANCTIONS: Entry[] = [
       lists: { type: "string", description: "Lists for a name: all (default), or any of ofac, eu, un, uk, comma-separated. Addresses are checked against OFAC, the only list that publishes crypto addresses", example: "all" },
     },
     {
-      query: { address: "0x098B716B8Aaf21512996dC57EB0615e2383E2f96", name: "Lazarus Group" }, verdict: "block", listed: true,
+      query: { address: "0x098B716B8Aaf21512996dC57EB0615e2383E2f96", name: "Lazarus Group", lists: ["ofac", "eu", "un", "uk"] }, verdict: "block", listed: true,
       matches: [
-        { sdnId: "…", name: "LAZARUS GROUP", type: "entity", programs: ["DPRK3"], matchedOn: "address", currency: "ETH", address: "0x098B716B8Aaf21512996dC57EB0615e2383E2f96" },
-        { sdnId: "…", name: "LAZARUS GROUP", type: "entity", programs: ["DPRK3"], matchedOn: "name", matchedName: "LAZARUS GROUP", score: 1 },
+        { list: "ofac", listId: "27307", sdnId: "27307", name: "LAZARUS GROUP", type: "entity", programs: ["DPRK3"], matchedOn: "address", currency: "ETH", address: "0x098B716B8Aaf21512996dC57EB0615e2383E2f96" },
+        { list: "ofac", listId: "27307", sdnId: "27307", name: "LAZARUS GROUP", type: "entity", programs: ["DPRK3"], matchedOn: "name", matchedName: "LAZARUS GROUP", score: 1 },
       ],
-      list: "OFAC Specially Designated Nationals (SDN)", listDate: "2026-10-17T20:15:00.000Z", entries: 18000,
+      list: "OFAC Specially Designated Nationals (SDN); EU consolidated financial sanctions list; UN Security Council Consolidated List; UK Sanctions List (FCDO)", listDate: "2026-10-17T20:15:00.000Z", entries: 31716,
       lists: [
         { list: "ofac", name: "OFAC Specially Designated Nationals (SDN)", date: "2026-10-17T20:15:00.000Z", entries: 18000, checked: true },
         { list: "eu", name: "EU consolidated financial sanctions list", date: "2026-10-23T15:05:43.888Z", entries: 6269, checked: true },

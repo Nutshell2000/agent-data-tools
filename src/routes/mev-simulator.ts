@@ -1,6 +1,7 @@
 import { HttpError, type Env } from "../lib/env";
 import { baseClient } from "../lib/rpc";
 import { formatEther, formatGwei } from "viem";
+import { jsonWithin } from "../lib/source-json";
 
 interface MEVSimulatorResult {
   chain: string;
@@ -42,7 +43,7 @@ export async function mevSimulator(env: Env, scenario: string = "standard"): Pro
       headers: { accept: "application/json" },
       signal: AbortSignal.timeout(5000),
     })
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => (r.ok ? jsonWithin(r) : null))
       .then((d: any) => parseFloat(d?.data?.amount ?? "0"))
       .catch(() => null),
   ]).catch((e) => {

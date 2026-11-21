@@ -1,6 +1,6 @@
 ---
 name: agent-data-tools
-description: "Live data and AI tools over plain HTTP, paid per call with no account: web search, page and PDF text, news, website audits, speech, token prices and technical indicators, wallet and chain reads, sanctions and payee checks, CVE, company and SEC lookups, stock quotes, FX, weather and 680+ more. Pay each call from a wallet over x402 (USDC) or with a prepaid key. Use when a task needs current information or an outside lookup and no better tool is connected. The tool finder is free."
+description: "Live data and AI tools over plain HTTP, paid per call with no account: web search, page and PDF text, news, website audits, speech, token prices and technical indicators, wallet and chain reads, sanctions and payee checks, CVE, company and SEC lookups, stock quotes, FX, weather and 650+ more. Pay each call from a wallet over x402 (USDC) or with a prepaid key. Use when a task needs current information or an outside lookup and no better tool is connected. The tool finder is free."
 version: 1.0.0
 metadata:
   openclaw:
@@ -14,7 +14,7 @@ metadata:
 
 # Agent Data Tools
 
-More than 680 tools behind one host, `https://agent-data-tools.revmesh2074.workers.dev`. Every tool is an HTTP GET with query parameters that returns JSON. There is no sign-up. A call costs a fixed price, from $0.002, most $0.01. Failed calls are never charged.
+More than 670 tools behind one host, `https://agent-data-tools.revmesh2074.workers.dev`. Every tool is an HTTP GET with query parameters that returns JSON. There is no sign-up. A call costs a fixed price, from $0.001, most $0.01. Failed calls are never charged.
 
 This skill only makes HTTPS requests to that one host. It installs nothing, runs no code of its own and reads no files. It never needs a private key or seed phrase: a wallet payment is made by the x402 wallet tool the agent already has, and the prepaid key is an ordinary API key.
 
@@ -128,7 +128,7 @@ An agent that prefers MCP connects to the compact server, `https://agent-data-to
 - `tool_details`: the inputs, output and price of one tool.
 - `call_tool`: runs a tool, with `{ "name": "<tool>", "arguments": { … } }`.
 
-Without a key it gives 25 free successful calls. With a key, send `Authorization: Bearer <key>` or `X-API-Key`; a client that can only take a URL uses `https://agent-data-tools.revmesh2074.workers.dev/mcp/k/<key>/compact` (the key is then part of the URL, so treat that URL as a secret).
+Without a key it gives 10 free successful calls on tools that only compute or look up public data (not AI, speech, transcription, images, rendering, search or resold data). With a key, send `Authorization: Bearer <key>` or `X-API-Key`; a client that can only take a URL uses `https://agent-data-tools.revmesh2074.workers.dev/mcp/k/<key>/compact` (the key is then part of the URL, so treat that URL as a secret).
 
 A tool priced above $0.10 is found and described normally and is marked `needsMaxPrice`. It runs only when `call_tool` is given a `max_price` that covers its price; otherwise the answer is an uncharged refusal that states the price. Pass `max_price` only when the user has set a budget for that call, never by default.
 

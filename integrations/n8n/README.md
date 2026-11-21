@@ -1,8 +1,8 @@
 # n8n-nodes-agent-data-tools
 
-An [n8n](https://n8n.io) community node for [Agent Data Tools](https://agent-data-tools.revmesh2074.workers.dev): web search, page text, news, GitHub, CVE, company, crypto, speech and sanctions tools behind one prepaid API key, paid per call. The node has a ready-made operation for the jobs used most and a "Call any tool" operation that reaches the rest of the catalog (about 680 tools).
+An [n8n](https://n8n.io) community node for [Agent Data Tools](https://agent-data-tools.revmesh2074.workers.dev): web search, page text, news, GitHub, CVE, company, crypto, speech and sanctions tools behind one prepaid API key, paid per call. The node has a ready-made operation for the jobs used most and a "Call any tool" operation that reaches the rest of the catalog (about 670 tools).
 
-- No subscription: a call costs a fixed price, from $0.002. Failed calls are not charged.
+- No subscription: a call costs a fixed price, from $0.001. Failed calls are not charged.
 - One credential for everything: a prepaid key bought by card, from $1.
 - "Find a tool" is free and works without a key.
 

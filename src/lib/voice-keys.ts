@@ -1,4 +1,7 @@
-// Two free keys for the voice fronts, both issued without an e-mail address and both OFF unless a wrangler var says "on":
+// Two free keys for the voice fronts, both issued without an e-mail address and both OFF unless a wrangler var says "on".
+// Production has both off since 21 Nov 2026 (the owner: a free user must cost nothing metered; every call of such a
+// key runs a speech or transcription model). While off, the POST routes refuse without writing anything, the GET
+// descriptions say that nothing free is offered and name the paid way in, and issued keys stop working.
 //   POST /keys/voice-test  (VOICE_TEST_KEYS=on)  a key for a developer's first calls with an OpenAI or ElevenLabs SDK
 //   POST /credits/trial    (CREDITS_TRIAL=on)    a key for the voice site's "Try Pro free on this file" button
 // Why (16 Nov 2026): OpenAI retires tts-1 and whisper-1 in early 2027, and apps with an "OpenAI-compatible" speech
@@ -32,6 +35,8 @@
 // says of its own; the per-key call count is exact.
 import { Hono, type Context, type Next } from "hono";
 import type { Env } from "./env";
+import { markUnpaidCall } from "./unpaid-call";
+import { takeIssueSlot } from "./issue-gate";
 import { VOICE_PRO_CENTS, VOICE_PRO_URL, hashCreditKey } from "./credits";
 import { FREE_CALLS_PER_DAY, addressBucket, callerHash, utcDay } from "./free-calls";
 import { prefersHtml } from "./negotiate";
@@ -91,6 +96,9 @@ export function paidOptions(origin: string) {
   return { credits: `${origin}/credits`, transcribePro: VOICE_PRO_URL, payPerCall: "Without a key every call can be paid on its own with x402 or MPP (USDC): send the request with no key to get the quote." };
 }
 const paidSentence = (origin: string) => `For more, buy a prepaid key from $1 at ${origin}/credits (no account), or pay per call with x402.`;
+/** What the two routes answer while their switch is off (wrangler.jsonc: off since 21 Nov 2026): not offered, and the paid way in. Nothing is written. */
+const testKeysOff = (origin: string) => `Free voice test keys are not offered. Speech and transcription need a paid key: buy one from $1 at ${origin}/credits (no account), or pay per call with x402.`;
+const trialOff = (origin: string) => `A free transcription trial is not offered. Transcribe Pro is $${VOICE_PRO_CENTS / 100} a month at ${origin}/transcribe-pro, or buy a prepaid key from $1 at ${origin}/credits.`;
 const proSentence = (origin: string) => `For longer or more recordings, Transcribe Pro is $${VOICE_PRO_CENTS / 100} a month at ${origin}/transcribe-pro, or buy a prepaid key from $1 at ${origin}/credits.`;
 
 interface KeyRecord { kind: VoiceKeyKind; expires: string; caller: string; day: string }
@@ -140,6 +148,8 @@ async function issueVoiceKey(env: Env, kind: VoiceKeyKind, ip: string | undefine
   const mine = Number(await kv.get(callerKey)) || 0;
   if (mine >= perCaller) return { ok: false, why: "caller" };
   if (kind === "trial" && !await takeOfDay(kv, "trial-minutes", 0, trialMinutesPerDay(env) - 1)) return { ok: false, why: "day" };
+  // Requests sent at the same moment all read the same KV number; the counted slot lets only the allowed ones on.
+  if (await takeIssueSlot(env, `voice-${kind}`, day, caller, perCaller) === false) return { ok: false, why: "caller" };
   if (!await takeOfDay(kv, `issued:${kind}`, 1, perDay)) return { ok: false, why: "day" };
   await kv.put(callerKey, String(mine + 1), { expirationTtl: 172_800 });
   const endOfDay = Date.parse(`${day}T00:00:00Z`) + 86_400_000;
@@ -174,7 +184,7 @@ function testKeyPage(title: string, body: string, indexable = false) {
 
 voiceKeys.get(VOICE_TEST_PATH, (c) => {
   const origin = new URL(c.req.url).origin;
-  if (!voiceTestKeysOn(c.env)) return c.json({ error: `Free voice test keys are not offered right now. ${paidSentence(origin)}`, code: "not_offered", more: paidOptions(origin) }, 404);
+  if (!voiceTestKeysOn(c.env)) return c.json({ freeVoiceTestKey: false, error: testKeysOff(origin), code: "not_offered", more: paidOptions(origin) }, 404);
   if (prefersHtml(c.req.header("accept"), c.req.header("user-agent"))) {
     return c.html(testKeyPage(`Free voice API test key: ${VOICE_TEST_CALLS} calls, no card`,
       `<h1>Try the voice API with no card</h1><p>${VOICE_TEST_CALLS} successful calls for ${VOICE_TEST_KEY_HOURS} hours, up to ${VOICE_TEST_SPEECH_CHARS} characters of speech or ${VOICE_TEST_AUDIO_SECONDS} seconds of transcription each. One key per network address per day, no e-mail.</p>
@@ -190,7 +200,7 @@ voiceKeys.post(VOICE_TEST_PATH, async (c) => {
   const origin = new URL(c.req.url).origin;
   const html = prefersHtml(c.req.header("accept"), c.req.header("user-agent"));
   const errPage = (message: string) => html ? c.html(testKeyPage("Your free test key", `<h1>No key this time</h1><p>${message}</p><p><a href="${VOICE_TEST_PATH}">Back</a> · <a href="/credits">Buy a key from $1</a></p>`)) : null;
-  if (!voiceTestKeysOn(c.env)) return errPage(`Free voice test keys are not offered right now. ${paidSentence(origin)}`) ?? c.json({ error: `Free voice test keys are not offered right now. ${paidSentence(origin)}`, code: "not_offered", more: paidOptions(origin) }, 404);
+  if (!voiceTestKeysOn(c.env)) return errPage(testKeysOff(origin)) ?? c.json({ error: testKeysOff(origin), code: "not_offered", more: paidOptions(origin) }, 404);
   const issued = await issueVoiceKey(c.env, "test", c.req.header("cf-connecting-ip")).catch((e: unknown) => { console.error("voice test key: not issued", e); return null; });
   if (!issued) return errPage(`A test key cannot be issued right now; try again in a few minutes.`) ?? c.json({ error: `A test key cannot be issued right now; try again in a few minutes. ${paidSentence(origin)}`, code: "unavailable", more: paidOptions(origin) }, 503, { "Retry-After": "300" });
   if (!issued.ok) {
@@ -220,7 +230,7 @@ const trialInfo = (origin: string) => ({
 voiceKeys.post(CREDITS_TRIAL_PATH, async (c) => {
   c.header("Cache-Control", "no-store");
   const origin = new URL(c.req.url).origin;
-  if (!creditsTrialOn(c.env)) return c.json({ error: `The free trial is not offered right now. ${proSentence(origin)}`, code: "not_offered", more: trialInfo(origin).more }, 404);
+  if (!creditsTrialOn(c.env)) return c.json({ error: trialOff(origin), code: "not_offered", more: trialInfo(origin).more }, 404);
   const issued = await issueVoiceKey(c.env, "trial", c.req.header("cf-connecting-ip")).catch((e: unknown) => { console.error("trial key: not issued", e); return null; });
   if (!issued) return c.json({ error: `A trial key cannot be issued right now; try again in a few minutes. ${proSentence(origin)}`, code: "unavailable", more: trialInfo(origin).more }, 503, { "Retry-After": "300" });
   if (!issued.ok) {
@@ -235,7 +245,7 @@ voiceKeys.get(CREDITS_TRIAL_PATH, (c) => {
   const origin = new URL(c.req.url).origin;
   return creditsTrialOn(c.env)
     ? c.json({ freeTrial: true, how: `POST ${origin}${CREDITS_TRIAL_PATH} (no body) answers with a key for one file.`, ...trialInfo(origin) })
-    : c.json({ error: `The free trial is not offered right now. ${proSentence(origin)}`, code: "not_offered", more: trialInfo(origin).more }, 404);
+    : c.json({ freeTrial: false, error: trialOff(origin), code: "not_offered", more: trialInfo(origin).more }, 404);
 });
 
 /** What /credits/balance answers for a voice key, or null when the key is not a live one. */
@@ -303,6 +313,8 @@ export async function chargeVoiceKey(c: C, key: string, next: Next) {
   if (!grant || grant.key !== key) return refuse(test ? `A free voice test key works only on POST ${origin}/v1/audio/speech and POST ${origin}/v1/audio/transcriptions, not on this path.` : `A free trial key transcribes one uploaded file with POST ${origin}/v1/audio/transcriptions, /transcribe/long or /transcribe; it does not work on this path or with a URL.`, test ? "test_key_scope" : "trial_key_scope");
   const kv = c.env.TRIALS;
   const store = c.env.METRICS?.get(c.env.METRICS.idFromName("credits"));
+  // Switched off in the configuration: the key has stopped for good, which is not "try again in a few minutes".
+  if (!kindOn(c.env, kind) && kv && store) return refuse(test ? "Free voice test keys are no longer offered, so this key has stopped working." : "The free transcription trial is no longer offered, so this key has stopped working.", "not_offered");
   if (!kv || !store || !kindOn(c.env, kind) || await switchedOff(c.env, "voice-keys")) return refuse("This key cannot be checked right now; try again in a few minutes.", "unavailable", 503);
   const limit = test ? VOICE_TEST_CALLS : 1;
   // The free-call counter under its own names: `free:caller:<counter>` (never reset) and `free:day:<name>` (2,000 a day).
@@ -326,6 +338,7 @@ export async function chargeVoiceKey(c: C, key: string, next: Next) {
     return refuse(test ? "Today's free speech test calls are used up; they come back at 00:00 UTC. Transcription test calls still work." : "Today's free trial minutes are used up; they come back at 00:00 UTC.", test ? "daily_test_speech_used_up" : "daily_trial_used_up");
   }
   const giveBack = async () => { await giveCallBack(); await giveBackOfDay(kv, dayCounter, amount).catch(() => {}); };
+  markUnpaidCall();
   try { await next(); } catch (err) { await giveBack(); throw err; }
   const failed = c.res.status >= 400;
   if (failed) await giveBack();

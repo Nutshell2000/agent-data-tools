@@ -2,18 +2,27 @@
 // (exampleParams(), the `input` of its discovery extension), through the real Worker with the paywall off
 // and live upstreams. Buyer bots call that example; we settle only on success, so an example that fails
 // is a first payment lost. Tools that need Workers AI or Browser Rendering are skipped here; check them on staging.
-//   node scripts/smoke-examples.mjs [path-filter] [--json out.json]
+//   node scripts/smoke-examples.mjs [path-filter] [--json out.json] [--retry] [--state progress.jsonl]
+// --state <file> (21 Nov 2026) writes each tool's start and answer to a progress file, and a run started with a file
+// that already holds answers continues with the tools not yet checked. It exists for
+// scripts/smoke-examples-supervised.mjs, which restarts this script when the local runtime ends mid-run; the release
+// uses that wrapper. The file belongs to one tree and one run: never reuse one after the source changed.
 import { build } from "esbuild";
 import { createRequire } from "node:module";
 import { writeFile } from "node:fs/promises";
 import { Miniflare, convertV4MiniflareOptions } from "miniflare";
+import { markResult, markStart, readSmokeState } from "./smoke-state.mjs";
 
 const args = process.argv.slice(2);
 const jsonAt = args.indexOf("--json");
 const jsonOut = jsonAt >= 0 ? args[jsonAt + 1] : undefined;
-const valueAt = new Set(["--json", "--cases", "--case-field"].map((f) => args.indexOf(f)).filter((i) => i >= 0).map((i) => i + 1));
+const valueAt = new Set(["--json", "--cases", "--case-field", "--state"].map((f) => args.indexOf(f)).filter((i) => i >= 0).map((i) => i + 1));
 const filter = args.find((a, i) => !a.startsWith("--") && !valueAt.has(i));
 const allParams = args.includes("--all-params");
+const stateAt = args.indexOf("--state");
+const stateFile = stateAt >= 0 ? args[stateAt + 1] : undefined;
+if (stateAt >= 0 && !stateFile) { console.error("--state needs a file name"); process.exit(2); }
+const earlier = readSmokeState(stateFile);
 const casesAt = args.indexOf("--cases");
 const fieldAt = args.indexOf("--case-field");
 const caseField = fieldAt >= 0 ? args[fieldAt + 1] : "example";
@@ -65,7 +74,11 @@ const mf = new Miniflare(convertV4MiniflareOptions({
 const NEEDS_REMOTE_DATA = new Set(["/ip/geolocate", "/ip/geolocation", "/defi/yields", "/defi/usdc-yield", "/econ/national-debt", "/econ/treasury-rates", "/se/company", "/law/search", "/phishing/check"]);
 const tools = ENDPOINTS.filter((e) => !CAPACITY_LIMITED.has(e.path) && !NEEDS_REMOTE_DATA.has(e.path) && !isAi(e.path) && (!filter || e.path.includes(filter)));
 let results = [];
-async function runExample(e) {
+const isOk = (r) => r.status >= 200 && r.status < 400;
+// 21 Nov 2026: a filter that matches nothing (or an empty catalogue) printed "0/0 examples succeed; 0 fail;" and exited
+// 0, which is the text and the code a release reads as a pass. Nothing checked is not a pass.
+if (!tools.length) { console.error(`no tool to check${filter ? ` (nothing matches "${filter}")` : ""}`); await mf.dispose(); process.exit(2); }
+async function runExample(e, retried = false) {
   // --all-params fills EVERY input with its listed example, as routers that plan from the listing schema do (Mercator's
   // suggestedPlanNode, agents filling a form from `examples`): an optional example that conflicts with the required ones
   // is a paid call refused (14 Nov 2026: /extract's section example "retry-policy" on other pages, 9 refusals in 7 days).
@@ -78,6 +91,7 @@ async function runExample(e) {
   const url = `https://agent-data-tools.revmesh2074.workers.dev${e.path}${query.size ? `?${query}` : ""}`;
   const t0 = Date.now();
   let status = 0, error = "";
+  markStart(stateFile, e.path);
   try {
     const res = await mf.dispatchFetch(url, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(30_000) });
     status = res.status;
@@ -89,16 +103,27 @@ async function runExample(e) {
   }
   const ms = Date.now() - t0;
   console.log(`${status >= 200 && status < 400 ? "ok  " : "FAIL"} ${String(status).padStart(3)} ${String(ms).padStart(6)}ms ${e.path}${error ? `  ${error}` : ""}`);
-  return { path: e.path, price: e.price, status, ms, error, url };
+  const result = { path: e.path, price: e.price, status, ms, error, url };
+  markResult(stateFile, result, retried);
+  return result;
 }
-const isOk = (r) => r.status >= 200 && r.status < 400;
-for (const e of tools) results.push(await runExample(e));
+// A restarted run (--state) takes the answers an earlier attempt already wrote, passes and failures alike, and calls
+// only the tools that have none. The tool that was in flight when the earlier attempt ended has none, so it runs again.
+const carried = tools.filter((e) => earlier.results.has(e.path));
+if (carried.length) console.log(`continuing an earlier attempt: ${carried.length} of ${tools.length} tools already checked (${carried.filter((e) => !isOk(earlier.results.get(e.path).r)).length} of them failed); ${earlier.inFlight ? `it ended while checking ${earlier.inFlight}` : "no tool was in flight when it ended"}`);
+for (const e of tools) results.push(earlier.results.has(e.path) ? earlier.results.get(e.path).r : await runExample(e));
 // --retry runs each failure once more after 5 s, so one upstream hiccup does not stop a release (scripts/release.ps1);
 // a failure that repeats is our bug or a dead source, and that tool's next first payment would fail too.
 if (args.includes("--retry") && results.some((r) => !isOk(r))) {
   await new Promise((r) => setTimeout(r, 5_000));
   console.log("\nretrying the failures once:");
-  for (let i = 0; i < results.length; i++) if (!isOk(results[i])) results[i] = await runExample(tools.find((e) => e.path === results[i].path));
+  // A failure that an earlier attempt already ran a second time has had its one retry: a restart gives it no third try.
+  const hadRetry = (path) => earlier.results.get(path)?.retried === true && earlier.results.get(path).r === results.find((r) => r.path === path);
+  for (let i = 0; i < results.length; i++) {
+    if (isOk(results[i])) continue;
+    if (hadRetry(results[i].path)) { console.log(`FAIL ${String(results[i].status).padStart(3)}  (retried in an earlier attempt) ${results[i].path}`); continue; }
+    results[i] = await runExample(tools.find((e) => e.path === results[i].path), true);
+  }
 }
 await mf.dispose();
 

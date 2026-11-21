@@ -246,12 +246,12 @@ test('free calls: plain HTTP still gets 402, trial=1 and MCP run free, failures 
  const {Client}=await import('@modelcontextprotocol/sdk/client/index.js');const{StreamableHTTPClientTransport}=await import('@modelcontextprotocol/sdk/client/streamableHttp.js');
  const client=new Client({name:'free-fixture',version:'1'});
  try{await client.connect(new StreamableHTTPClientTransport(new URL('https://api.test/mcp'),{requestInit:{headers:ip},fetch:(u,i)=>mfFree.dispatchFetch(u,i)}));
-  assert.match(client.getInstructions(),/25 free successful calls.*\/credits/);
+  assert.match(client.getInstructions(),/10 free successful calls.*\/credits/);
   const r=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});
   // HTTP and MCP free calls are counted separately, so the HTTP trial above did not use any of this MCP allowance.
-  assert.notEqual(r.isError,true);assert.match(r.content.at(-1).text,/^Free call \(24 of 25/);
+  assert.notEqual(r.isError,true);assert.match(r.content.at(-1).text,/^Free call \(9 of 10/);
   const bad=await client.callTool({name:'extract',arguments:{url:'https://public.example/fail'}});assert.equal(bad.isError,true);
-  const again=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.match(again.content.at(-1).text,/^Free call \(23 of 25/);
+  const again=await client.callTool({name:'extract',arguments:{url:'https://public.example/article'}});assert.match(again.content.at(-1).text,/^Free call \(8 of 10/);
  }finally{await client.close();}
  // Over HTTP a caller has 3 free calls (10 Nov 2026; MCP keeps 25). A caller who has used all 3 gets the 402 and is counted as free_exhausted, the moment they are asked to pay.
  const other={'cf-connecting-ip':'198.51.100.8'};

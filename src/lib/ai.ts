@@ -21,12 +21,18 @@ export const MODELS = {
  * so running out is reported as 503 and the caller is not charged.
  */
 export async function runAi<T>(env: Env, model: string, input: Record<string, unknown>): Promise<T> {
-  await takeDailyBudget(env, "ai", env.AI_DAILY_CAP, DEFAULT_AI_DAILY_CAP, "AI");
+  // Counted exactly, with a share for unpaid calls (lib/daily-cap.ts, 21 Nov 2026): free traffic can no longer use up
+  // the day's AI capacity that paying buyers need.
+  const slot = await takeDailyBudget(env, "ai", env.AI_DAILY_CAP, DEFAULT_AI_DAILY_CAP, "AI", true);
   try {
     return (await env.AI.run(model as Parameters<Ai["run"]>[0], input as never)) as T;
   } catch (e) {
     const message = e instanceof Error ? e.message : String(e);
     console.error(`workers-ai ${model}: ${message}`);
+    // A failed call gives its slot back (21 Nov 2026): on 20 Nov a retired model failed every call, and each failure
+    // still used one of the day's slots. A refused input is the exception: the model ran, so the call was billed.
+    const outOfCapacity = /4006|daily free allocation|neurons|capacity|rate limit|429/i.test(message);
+    if (outOfCapacity || !/nsfw|safety|flagged|3030/i.test(message)) await slot.giveBack();
     if (/4006|daily free allocation|neurons|capacity|rate limit|429/i.test(message)) {
       throw new HttpError(503, "today's free AI capacity is used up; try again after 00:00 UTC");
     }

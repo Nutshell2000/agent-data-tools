@@ -337,7 +337,7 @@ export const ENTRY_PATHS: Entry[] = [
     ((s) => ({ ...s, endpoint: { ...s.endpoint, price: "$0.002" } }))(from(KEYWORDS, "/keywords/ideas"))),
 
   door("/crypto/research", "Crypto research, coin research: one-call coin brief",
-    "Crypto research and coin research in one call: price, 24h change, volume and open interest for any Hyperliquid coin (BTC, ETH, SOL, HYPE and about 200 more), funding now and over 3 days, order-book depth and spread, 4-hour and daily technical signals, and attributed market sentiment. Use before a trade or to brief an agent on a coin. Not investment advice.",
+    "Crypto research and coin research in one call: price, 24h change, volume and open interest for any Hyperliquid coin (BTC, ETH, SOL, HYPE and the other listed perpetuals), funding now and over 3 days, order-book depth and spread, 4-hour and daily technical signals, and attributed market sentiment. Use before a trade or to brief an agent on a coin. Not investment advice.",
     ["crypto-research", "coin-research", "token-research", "coin-brief", "hyperliquid"], from(GEO_MORE, "/pack/coin-research")),
 
   door("/coin/research", "Coin research: price, funding and signals for one coin",

@@ -60,7 +60,8 @@ export async function withBrowserPage<T>(
   if (!env.BROWSER) throw new HttpError(503, "the hosted browser is not available in this environment");
   // Browser Rendering is billed per browser-hour on Workers Paid (10 hours a month included): 60 launches a day of a few
   // seconds each stays inside the included time, so the plan's price is the whole bill.
-  await takeDailyBudget(env, "browser", env.BROWSER_DAILY_CAP, 60, "hosted browser");
+  // Counted exactly, with a share for unpaid calls (lib/daily-cap.ts, 21 Nov 2026).
+  const slot = await takeDailyBudget(env, "browser", env.BROWSER_DAILY_CAP, 60, "hosted browser", true);
   let browser: Awaited<ReturnType<typeof puppeteer.launch>>;
   let blockedNavigation = false;
   try {
@@ -70,6 +71,7 @@ export async function withBrowserPage<T>(
     catch (first) { console.warn(`browser launch retry: ${first}`); await new Promise((r) => setTimeout(r, 1500)); browser = await puppeteer.launch(env.BROWSER); }
   } catch (e) {
     console.error(`browser launch: ${e}`);
+    await slot.giveBack(); // no browser was started, so none of the day's browser time was used
     throw new HttpError(503, "today's free browser capacity is used up or busy; try again later");
   }
   try {

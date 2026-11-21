@@ -10,6 +10,8 @@
 import { entry, flag, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
 import { vatParts, viesCheck } from "./registries";
+import { API_UA } from "../lib/outbound-ua";
+import { jsonWithin } from "../lib/source-json";
 
 /** Keep equal to SHARDS in scripts/build-se-company-index.mjs (tests/se-company.test.cjs checks both). */
 export const SHARDS = 509;
@@ -162,7 +164,7 @@ async function gunzipJson<T>(res: Response): Promise<T> {
 type Fetcher = typeof fetch;
 interface PackFile { file: string; bytes: number; index: [number, number][] }
 interface Manifest { dataAsOf?: string; shards?: number; files?: { companies?: PackFile; names?: PackFile } }
-const UA = { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" };
+const UA = { "user-agent": API_UA };
 const busy = (why: string) => new HttpError(503, `the Swedish company register copy ${why}; try again later, nothing was charged`);
 
 async function get(url: string, fetcher: Fetcher, init: RequestInit = {}): Promise<Response> {
@@ -181,7 +183,9 @@ async function loadManifest(fetcher: Fetcher): Promise<Manifest> {
   if (res.status === 404) throw busy("is being published");
   if (!res.ok) throw busy(`answered HTTP ${res.status}`);
   let value: Manifest;
-  try { value = (await res.json()) as Manifest; } catch { throw busy("was unreadable"); }
+  try { value = await jsonWithin<Manifest>(res); } catch { throw busy("was unreadable"); }
+  // 21 Nov 2026: a manifest that is the bare value null was read as an object: our 500.
+  if (value === null || typeof value !== "object") throw busy("was unreadable");
   if (!value.files?.companies || !value.files?.names || value.shards !== SHARDS) throw busy("is being rebuilt");
   manifestMemo = { at: Date.now(), value };
   return value;

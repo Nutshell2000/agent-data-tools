@@ -27,6 +27,7 @@ jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
+    timeout-minutes: 30 # 21 Nov 2026: lint, build and one publish; ends a hung registry call
 
     permissions:
       # Required to mint the OIDC token for npm trusted publishing and the provenance statement.

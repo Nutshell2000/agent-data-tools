@@ -108,12 +108,12 @@ export async function whaleTransfers(env: Env, chainRaw?: string, tokenRaw?: str
 
 export const WHALE: Entry[] = [
   entry("/whale/transfers", "Whale alert, large transfers: big USDC and USDT moves on 5 networks",
-    "Large stablecoin transfers in the last minutes, read live from the network: every USDC and USDT transfer of at least min USD (default 100,000) on Ethereum, Base, Arbitrum, Optimism or Polygon, largest first, with sender, receiver, transaction and block, mints and burns marked. Covers up to 15 minutes on Ethereum and 3 on Base (busiest). Addresses are not labelled. Use to watch whale flows, treasury moves or stablecoin mints.",
+    "Large stablecoin transfers in the last minutes, read live: every USDC and USDT transfer of at least min USD (default 100,000) on Ethereum, Base, Arbitrum, Optimism or Polygon, largest first, with sender, receiver, transaction and block, mints and burns marked. Reaches back up to 15 minutes on Ethereum, about 12 on Arbitrum, 10 on Optimism, 7 on Polygon and 3 on Base. Addresses are not labelled. Use to watch whale flows or stablecoin mints.",
     ["whale-alert", "whale-tracking", "large-transfers", "stablecoin-flows", "usdc"], {
       chain: { type: "string", description: "ethereum (default), base, arbitrum, optimism or polygon", example: "ethereum" },
       token: { type: "string", description: "USDC, USDT or stablecoins (both, default)", example: "stablecoins" },
       min: { type: "string", description: "Smallest transfer in USD, 10000 or more (default 100000)", example: "100000" },
-      minutes: { type: "string", description: "How far back, 1 to 15 minutes (default 5; Base covers at most 3)", example: "5" },
+      minutes: { type: "string", description: "How far back, 1 to 15 minutes (default 5). A network reads at most about 15 minutes on Ethereum, 12 on Arbitrum, 10 on Optimism, 7 on Polygon and 3 on Base; minutesCovered in the answer says what was read", example: "5" },
     },
     { chain: "Ethereum", tokens: ["USDC", "USDT"], minUsd: 100000, fromBlock: 23650001, toBlock: 23650025, minutesCovered: 5, complete: true, transfersScanned: 2400, count: 3, totalUsd: 1850000, transfers: [{ token: "USDC", amount: 1000000, from: "0x28c6c06298d514db089934071355e5743bf21d60", to: "0x3cd751e6b0078be393132286c442345e5dc49699", kind: "transfer", txHash: "0x…", block: 23650020 }], note: "Amounts are token units of USD stablecoins (1 unit is about 1 USD). Addresses are not labelled; mints and burns are marked." },
     (env, q) => whaleTransfers(env, opt(q, "chain", 30), opt(q, "token", 20),

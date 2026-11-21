@@ -7,7 +7,7 @@ import { HttpError, type Env } from "../lib/env";
 
 const isAddress = (v: string): v is `0x${string}` => /^0x[0-9a-fA-F]{40}$/.test(v);
 import { EDGE_RPCS, LOG_RPCS, erc20Abi, logTransport, requestClient, rpcUrls } from "../lib/rpc";
-import { TICKERS, coinIdTicker, tokenAddress } from "../lib/tickers";
+import { TICKERS, coinIdTicker, tickerClause, tickerWords, tokenAddress } from "../lib/tickers";
 import { fetchFile } from "../lib/fetch";
 
 interface ChainDef {
@@ -157,7 +157,13 @@ export const LOG_WINDOW_MAX = 50_000n;
  * three. Busy contracts (a whole token's transfers, /base/logs) keep the 10-block start, so they never pull megabytes.
  */
 export const SPARSE_FIRST_WINDOW = 500n;
-/** How long a log scan may keep starting new windows before it answers what it has (see `recentLogs`). */
+/**
+ * How long a log scan may keep starting new windows before it answers what it has (see `recentLogs`). It limits when a
+ * window may START, not how long the scan lasts: a window that starts just inside it still runs to its nodes' time
+ * limits. 21 Nov 2026: one failed call against nodes that all hang takes 18.35 s on Base, Optimism and Polygon and
+ * 22.35 s on Ethereum and Arbitrum (lib/rpc.ts `logCallWorstMs`), so the worst a caller waits for a 502 is 36.7 s and
+ * 22.35 s, not 20 s. The time limits are not changed here: that needs a measurement from Cloudflare.
+ */
 export const LOG_SCAN_BUDGET_MS = 20_000;
 const fmtBlocks = (n: number) => n.toLocaleString("en-US");
 
@@ -257,9 +263,9 @@ function chainEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("token-balance"), `${c.name} ERC-20 balance`,
-      `ERC-20 token balance of a wallet on ${c.name} (USDC, USDT, WETH or any token, via balanceOf): raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use ${c.slug}_balance. Both inputs are 0x addresses (40 hex characters); no contract or a non-ERC-20 contract returns 422, uncharged.`,
+      `ERC-20 token balance of a wallet on ${c.name} (${tickerWords(c.slug, ["USDT", "WETH"])} by ticker, any token by address, via balanceOf): raw amount, decimals, symbol and the human-readable amount, live from the token contract. Use to check stablecoin or token holdings before a transfer or trade; for the native coin use ${c.slug}_balance. The token is ${tickerClause(c.slug, ["USDT", "WETH"])} or its 0x address; no contract or a non-ERC-20 contract returns 422, uncharged.`,
       tags("erc20", "token", "balance"), {
-        token: { type: "string", description: "Token: a ticker such as USDC, USDT, WETH or DAI, or the 0x ERC-20 contract address", required: true, example: USDC[c.slug] },
+        token: { type: "string", description: `Token: ${tickerClause(c.slug, ["USDT", "WETH", "DAI"])}, or the 0x ERC-20 contract address`, required: true, example: USDC[c.slug] },
         address: { type: "string", description: "0x wallet address", required: true, example: EX_ADDR },
       },
       head({ token: USDC[c.slug], symbol: "USDC", decimals: 6, address: EX_ADDR, raw: "2500000", balance: "2.5" }),
@@ -279,8 +285,8 @@ function chainEntries(c: ChainDef): Entry[] {
       }),
 
     entry(p("token-info"), `${lead} token info, ERC-20`,
-      `Look up the name, symbol, decimals and total supply of an ERC-20 token contract on ${c.name}, live from the contract. Use to identify an unknown token address or to format raw amounts; for a holder's balance use ${c.slug}_token_balance. Input is a ticker (USDC, WETH…) or the token's 0x contract address; an address that is not an ERC-20 contract returns 422, uncharged.`,
-      tags("erc20", "token", "metadata"), { token: { type: "string", description: "Token: a ticker such as USDC or WETH, or the 0x ERC-20 contract address", required: true, example: USDC[c.slug] } },
+      `Look up the name, symbol, decimals and total supply of an ERC-20 token contract on ${c.name}, live from the contract. Use to identify an unknown token address or to format raw amounts; for a holder's balance use ${c.slug}_token_balance. Input is ${tickerClause(c.slug, ["WETH"])} or the token's 0x contract address; an address that is not an ERC-20 contract returns 422, uncharged.`,
+      tags("erc20", "token", "metadata"), { token: { type: "string", description: `Token: ${tickerClause(c.slug, ["WETH"])}, or the 0x ERC-20 contract address`, required: true, example: USDC[c.slug] } },
       head({ token: USDC[c.slug], name: "USD Coin", symbol: "USDC", decimals: 6, totalSupply: "1000000000.0", totalSupplyRaw: "1000000000000000" }),
       async (env, q) => {
         const token = tokenInput(q("token"), c.slug);
@@ -409,7 +415,7 @@ function chainEntries(c: ChainDef): Entry[] {
       `List a wallet's recent transfers of one ERC-20 token (default USDC) on ${c.name}, in and out, over the last N blocks (1-${fmtBlocks(scaledBlocks(c.slug, 2000))}, default ${fmtBlocks(scaledBlocks(c.slug, 1000))}): direction, counterparty, amount and transaction, newest first, up to 50. Use to confirm a payment arrived or see what was sent; for the current balance use ${c.slug}_token_balance. Malformed addresses are rejected with 400, uncharged.`,
       tags("erc20", "transfers", "wallet", "history", "usdc", "payments"), {
         address: { type: "string", description: "0x wallet or contract address", required: true, example: busyAddress(c.slug) },
-        token: { type: "string", description: "Token: a ticker such as USDT or WETH, or the 0x ERC-20 contract (default: USDC on this network)", example: USDC[c.slug] },
+        token: { type: "string", description: `Token: ${tickerClause(c.slug, ["USDT", "WETH"])}, or the 0x ERC-20 contract (default: USDC on this network)`, example: USDC[c.slug] },
         blocks: { type: "integer", description: BLOCK_SCALE[c.slug]
           ? `How many recent blocks to scan (1-${scaledBlocks(c.slug, 2000)}, default ${scaledBlocks(c.slug, 1000)}; ${c.name} makes a block every 0.2 s, so ${fmtBlocks(scaledBlocks(c.slug, 1000))} blocks is about 33 minutes)`
           : `How many recent blocks to scan (1-2000, default 1000; 2,000 blocks is about ${BLOCK_WINDOW[c.slug]} on ${c.name})`, example: 1000 },
@@ -816,9 +822,9 @@ function contractEntries(c: ChainDef): Entry[] {
   // Base already sells this read as /base-allowance (the published chain client promises that path and price).
   if (c.slug !== "base") list.push(
     entry(p("allowance"), `Token allowance, ${short} ERC-20`.length <= 32 ? `Token allowance, ${short} ERC-20` : `Token allowance, ${short}`,
-      `ERC-20 token allowance on ${c.name}: how much a spender may move from an owner's wallet (allowance), raw and in token units, and whether the approval is unlimited. Use to check an approval before a swap or to audit risky open approvals; for the owner's balance use ${c.slug}_token_balance. Token is a ticker (USDC, USDT, WETH…) or a 0x contract; a missing contract or a non-ERC-20 one is 422, uncharged.`,
+      `ERC-20 token allowance on ${c.name}: how much a spender may move from an owner's wallet (allowance), raw and in token units, and whether the approval is unlimited. Use to check an approval before a swap or to audit risky open approvals; for the owner's balance use ${c.slug}_token_balance. Token is ${tickerClause(c.slug, ["USDT", "WETH"])} or a 0x contract; a missing contract or a non-ERC-20 one is 422, uncharged.`,
       tags("erc20", "allowance", "approval", "token"), {
-        token: { type: "string", description: "Token: a ticker such as USDC or WETH, or the 0x ERC-20 contract address", required: true, example: USDC[c.slug] },
+        token: { type: "string", description: `Token: ${tickerClause(c.slug, ["WETH"])}, or the 0x ERC-20 contract address`, required: true, example: USDC[c.slug] },
         owner: { type: "string", description: "0x wallet that gave the approval", required: true, example: EX_ADDR },
         spender: { type: "string", description: "0x contract or wallet allowed to spend (the example is Uniswap Permit2)", required: true, example: PERMIT2 },
       },
@@ -880,7 +886,11 @@ export async function recentLogs(cl: PublicClient, filter: { address?: `0x${stri
       if (e instanceof HttpError && logs.length > 0) return { logs, fromBlock: to + 1n, complete: false };
       // Nothing read yet and the window is wide: public nodes cap or time out on wide ranges (/status, 16 Nov 2026: 4 of 5
       // /arb/token-transfers and 3 of 7 /wallet/related calls ended "could not scan that range"). Try a quarter of the
-      // window, down to 10 blocks, at most 3 times inside the budget, and keep later windows at the size that worked.
+      // window, down to 10 blocks, at most 3 times, and keep later windows at the size that worked. A retry starts only
+      // while the budget has time left, so this works against nodes that REFUSE a wide range (an error within a second or
+      // so). 21 Nov 2026: it does not work against nodes that all HANG. One such failure uses 22.35 s of the 20 s budget
+      // on Ethereum and Arbitrum, so no smaller window is tried there; on Base, Optimism and Polygon it uses 18.35 s, one
+      // smaller window is tried, and the 502 comes after 36.7 s (lib/rpc.ts `logCallWorstMs`, tested with a fake clock).
       if (e instanceof HttpError && logs.length === 0 && shrinks < 3 && size > 10n && now() - started <= budget) {
         shrinks++;
         size = size / 4n > 10n ? size / 4n : 10n;

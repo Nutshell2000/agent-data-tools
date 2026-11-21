@@ -17,11 +17,12 @@
 // Wallets and routers paying per call (x402, MPP) keep the tools' prices: each on-chain settlement above 1,000 a month
 // costs us $0.001, so a $0.001 call would net nothing there (the same reason as lib/key-prices.ts).
 import type { Env } from "./env";
-import { creditsFromMicros, hashCreditKey, priceMicros } from "./credits";
+import { SPEECH_CREDITS_PER_100, creditsFromMicros, hashCreditKey, priceMicros } from "./credits";
 
 export const SHORT_AUDIO_SECONDS = 30;
 export const SHORT_AUDIO_KEY_PRICE = "$0.001";
-export const SPEECH_CREDITS_PER_100 = 4;
+// The number is kept in lib/credits.ts (which imports nothing), so the plans there can be shown as characters.
+export { SPEECH_CREDITS_PER_100 };
 
 const inCredits = (price: string) => Math.round(Number(price.slice(1)) * 1000);
 const asPrice = (credits: number) => `$${(credits / 1000).toFixed(3)}`;

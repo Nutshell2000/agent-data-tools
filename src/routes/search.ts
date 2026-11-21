@@ -11,9 +11,11 @@ import { entry, flag, need, num, opt, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
 import { parseTarget } from "../lib/fetch";
 import { switchedOff } from "../lib/switches";
+import { takeExactBudget } from "../lib/daily-cap";
 import { enrich, queryTerms, readPage, type ContentsOptions, type Hit } from "../lib/search-contents";
 import { chat } from "./ai-text";
 import { extract } from "./extract";
+import { jsonWithin } from "../lib/source-json";
 
 /** Upstream requests per UTC day when SEARCH_DAILY_CAP is unset: about $2.50 at Brave's $5 per 1,000. */
 const DEFAULT_DAILY_CAP = 500;
@@ -35,15 +37,18 @@ const DEFAULT_DAILY_CAP = 500;
 export const MERCATOR_TEST_PRICE = "$0.01";
 const TERMS = "Results are for the caller's immediate use: no storing or caching beyond the current task, no resale and no model training (Brave Search API terms).";
 
-/** Counts one upstream request; KV is eventually consistent, so the cap is approximate. */
+/** Counts one upstream request against the day's cap. */
 async function takeSearchBudget(env: Env): Promise<void> {
   if (!env.TRIALS) throw new HttpError(503, "search is not configured on this deployment", "SEARCH_UNAVAILABLE");
   if (await switchedOff(env, "search")) throw new HttpError(503, "search is paused by the operator right now; nothing was charged, try again later", "PAUSED_BY_OPERATOR");
   const cap = Number(env.SEARCH_DAILY_CAP) || DEFAULT_DAILY_CAP;
-  const key = `search:${new Date().toISOString().slice(0, 10)}`;
-  const used = Number(await env.TRIALS.get(key)) || 0;
-  if (used >= cap) throw new HttpError(503, "today's search capacity is used up; try again after 00:00 UTC", "SEARCH_CAPACITY");
-  await env.TRIALS.put(key, String(used + 1), { expirationTtl: 172_800 });
+  // Counted exactly in the Metrics object, with a share for unpaid calls (lib/daily-cap.ts, 21 Nov 2026). The KV count
+  // named here is used only while that counter cannot be reached.
+  await takeExactBudget(env, {
+    kind: "search", cap: Math.floor(cap), kvKey: `search:${new Date().toISOString().slice(0, 10)}`,
+    full: () => new HttpError(503, "today's search capacity is used up; try again after 00:00 UTC", "SEARCH_CAPACITY"),
+    unpaidFull: () => new HttpError(503, "today's search capacity for free calls is used up; paid calls still run, and free ones again after 00:00 UTC", "SEARCH_CAPACITY"),
+  });
 }
 
 interface BraveResult {
@@ -169,7 +174,7 @@ export async function webSearch(env: Env, o: WebSearchOptions, fetcher: typeof f
   // answers (401, 403, 429) and Brave's own 5xx stay 503.
   if (res.status === 400 || res.status === 422) { await res.body?.cancel().catch(() => {}); throw new HttpError(400, "the search provider could not run this query; shorten it or use plain words (nothing was charged)"); }
   if (!res.ok) throw new HttpError(503, `the search provider answered HTTP ${res.status}; try again`);
-  const body = (await res.json().catch(() => null)) as { web?: { results?: BraveResult[] }; results?: BraveResult[] } | null;
+  const body = (await jsonWithin(res).catch(() => null)) as { web?: { results?: BraveResult[] }; results?: BraveResult[] } | null;
   if (!body) throw new HttpError(503, "the search provider sent an unreadable answer");
   const raw = (endpoint === "news" ? body.results : body.web?.results) ?? [];
   const excludeLower = o.excludeText?.toLowerCase();
@@ -380,7 +385,7 @@ export const SEARCH: Entry[] = [
         throw new HttpError(503, "the news provider did not answer in time; try again");
       }
       if (!res.ok) throw new HttpError(503, `the news provider answered HTTP ${res.status}; try again`);
-      const body = (await res.json().catch(() => null)) as { results?: (BraveResult & { meta_url?: { hostname?: string } })[] } | null;
+      const body = (await jsonWithin(res).catch(() => null)) as { results?: (BraveResult & { meta_url?: { hostname?: string } })[] } | null;
       if (!body) throw new HttpError(503, "the news provider sent an unreadable answer");
       const results = (body.results ?? [])
         // A Brave result with a relative or absent URL must not crash the whole paid call in new URL() below.

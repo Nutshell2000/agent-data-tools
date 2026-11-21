@@ -1,5 +1,6 @@
 import { HttpError } from "../lib/env";
 import { packageInfo } from "./package";
+import { jsonWithin } from "../lib/source-json";
 
 const MAX_PACKAGES = 10;
 const MAX_OSV_ADVISORIES_PER_PACKAGE = 10;
@@ -170,7 +171,7 @@ async function queryOsv(specs: PackageSpec[]): Promise<{ retrievedAt: string; re
       signal: AbortSignal.timeout(8_000),
     });
     if (!response.ok) return null;
-    const results = parseBatchResults(await response.json(), specs.length);
+    const results = parseBatchResults(await jsonWithin(response), specs.length);
     return results ? { retrievedAt: new Date().toISOString(), results } : null;
   } catch {
     return null;
@@ -210,7 +211,7 @@ async function fetchOsvAdvisory(id: string, modified: string | undefined, spec: 
       signal: AbortSignal.timeout(8_000),
     });
     if (!response.ok) return unavailableAdvisory(id, modified);
-    const value: unknown = await response.json();
+    const value: unknown = await jsonWithin(response);
     if (!isRecord(value) || value.id !== id) return unavailableAdvisory(id, modified);
 
     const affected = Array.isArray(value.affected) ? value.affected.filter(isRecord) as OsvAffected[] : [];
@@ -393,7 +394,7 @@ async function fetchEpss(
     });
     const receivedAt = retrievedAt();
     if (!response.ok) return { retrievedAt: receivedAt, response: null };
-    const parsed = parseEpssResponse(await response.json(), new Set(cves));
+    const parsed = parseEpssResponse(await jsonWithin(response), new Set(cves));
     return { retrievedAt: receivedAt, response: parsed };
   } catch {
     return { retrievedAt: retrievedAt(), response: null };

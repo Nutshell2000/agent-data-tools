@@ -36,6 +36,9 @@ jobs:
   plan:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Stated on the job too (21 Nov 2026), so a later change to the workflow-level default cannot widen this job.
+    permissions:
+      contents: read
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
     steps:
@@ -67,6 +70,9 @@ jobs:
     if: needs.plan.outputs.matrix != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 340
+    # Stated on the job too (21 Nov 2026), so a later change to the workflow-level default cannot widen this job.
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       max-parallel: 8 # be gentle with Bolagsverket's file server

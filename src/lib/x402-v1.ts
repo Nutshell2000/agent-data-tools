@@ -168,12 +168,22 @@ export async function payV1(c: C, endpoint: Endpoint, header: string, next: Next
     await releaseClaim?.();
     return;
   }
-  let settled;
-  try { settled = await fac.settle(payment, requirements); } catch (e) { console.error("x402 v1 settle failed", e); settled = { success: false, errorReason: String((e as Error)?.message ?? "settlement unavailable").slice(0, 200) }; }
+  let settled: { success: boolean; transaction?: string; network?: string; payer?: string; errorReason?: string };
+  // True when the settle request ended without an answer from the facilitator (it timed out, or the connection broke).
+  let outcomeUnknown = false;
+  try { settled = await fac.settle(payment, requirements); } catch (e) {
+    console.error("x402 v1 settle failed", e);
+    outcomeUnknown = settleOutcomeUnknown(e);
+    settled = { success: false, errorReason: String((e as Error)?.message ?? "settlement unavailable").slice(0, 200) };
+  }
   if (!settled.success || !settled.transaction) {
     markStage("settlement_failed");
-    console.warn(`x402 v1 settlement_failed ${endpoint.path} on ${payment.network}: ${settled.errorReason ?? "unknown"}`);
-    c.res = c.json(v1Body(accepts, `settlement failed: ${settled.errorReason ?? "unknown"}; you were not charged`), 402);
+    console.warn(`x402 v1 settlement_failed${outcomeUnknown ? " (outcome unknown)" : ""} ${endpoint.path} on ${payment.network}: ${settled.errorReason ?? "unknown"}`);
+    // 21 Nov 2026: this said "you were not charged" for every failure. That is true when the facilitator refused the
+    // payment, and not known when the request to it timed out or broke: the transfer may still have been sent.
+    c.res = c.json(v1Body(accepts, outcomeUnknown
+      ? `settlement could not be confirmed: ${settled.errorReason ?? "unknown"}. The payment may or may not have gone through; before paying again, check whether this authorization was used on chain`
+      : `settlement failed: ${settled.errorReason ?? "unknown"}; you were not charged`), 402);
     return;
   }
   markStage("settled");
@@ -181,6 +191,27 @@ export async function payV1(c: C, endpoint: Endpoint, header: string, next: Next
   c.res.headers.set("X-PAYMENT-RESPONSE", encodePaymentResponseHeader(response as never));
   c.res.headers.set("Access-Control-Expose-Headers", "X-PAYMENT-RESPONSE, X-Request-ID");
   c.executionCtx.waitUntil(recordV1(c.env, endpoint.path, CAIP_OF_V1[network], requirements, settled.transaction, (settled.payer ?? auth.from ?? "").toLowerCase(), auth.nonce ?? "", value.toString()));
+}
+
+/**
+ * Whether a failed settle call leaves the payment's fate open. It does not when the facilitator answered with a
+ * refusal (the library's SettleError, or any HTTP answer it reports with a status), nor when the request never
+ * reached it. It does when the request timed out or the connection failed part-way: the facilitator may have sent
+ * the transfer already.
+ */
+export function settleOutcomeUnknown(error: unknown): boolean {
+  const name = String((error as Error)?.name ?? "");
+  const message = String((error as Error)?.message ?? error ?? "");
+  if (name === "SettleError") return false;
+  if (name === "FacilitatorTimeoutError" || /timed out|timeout/i.test(message)) return true;
+  // "Facilitator settle failed (<status>): …" with a 4xx status is an answer: the request was refused. So is an HTML
+  // error page, which comes from the edge in front of the facilitator (lib/facilitator.ts). A 5xx from the facilitator
+  // itself says it failed while working on the payment, which leaves the outcome open.
+  const status = /^Facilitator settle failed \((\d{3})\):\s*(<(?:!doctype|html))?/i.exec(message);
+  if (status) return status[1].startsWith("5") && !status[2];
+  if (/^invalid_|insufficient_funds/.test(message)) return false;
+  // Anything else (a network error, an unreadable answer) says nothing about what the facilitator did.
+  return true;
 }
 
 /** The v1 network name for what a client sent: "base", or its CAIP-2 id "eip155:8453"; unknown names pass through. */

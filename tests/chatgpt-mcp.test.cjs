@@ -195,7 +195,14 @@ test('a sign-in from ChatGPT sees one Continue button and no key, credits or pri
   const q = (redirect) => new URLSearchParams({ client_id: clientId, redirect_uri: redirect, state: 's', code_challenge: 'x'.repeat(43), code_challenge_method: 'S256', response_type: 'code' });
   const page = await (await mf.dispatchFetch(`${O}/oauth/authorize?${q(REDIRECT)}`)).text();
   assert.match(page, /<button type="submit" name="mode" value="free">Continue<\/button>/);
-  assert.doesNotMatch(page.replace(/<style[\s\S]*?<\/style>/, ''), /adt_|API key|\/credits|credit|free call|\$\d|buy/i);
+  // 21 Nov 2026: the page echoes the client id in one hidden field, and that id is 24 random letters and digits: about one
+  // run in 1,500 it held "buy" and this check failed on a page that said nothing of the kind. The id is taken
+  // out of that one field (and must be nowhere else); every other word and attribute of the page is still checked.
+  const idField = `<input type="hidden" name="client_id" value="${clientId}">`;
+  assert.equal(page.split(idField).length, 2, 'the client id is echoed once, in its hidden field');
+  const shown = page.replace(/<style[\s\S]*?<\/style>/, '').replace(idField, '<input type="hidden" name="client_id" value="">');
+  assert.ok(!shown.includes(clientId), 'the client id is nowhere else on the page');
+  assert.doesNotMatch(shown, /adt_|API key|\/credits|credit|free call|\$\d|buy/i);
   // Another app's sign-in keeps the key field.
   const other = await (await mf.dispatchFetch(`${O}/oauth/authorize?${q('https://claude.ai/api/mcp/auth_callback')}`)).text();
   assert.match(other, /Sign in with key/);

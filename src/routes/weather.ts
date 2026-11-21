@@ -1,10 +1,11 @@
 import { HttpError } from "../lib/env";
-import { sourceJson } from "../lib/source-json";
+import { sourceJson, sourceShape } from "../lib/source-json";
 import { placeCoordinates } from "../lib/wikidata";
 import { countryCode } from "../lib/country-code";
+import { API_UA } from "../lib/outbound-ua";
 
 // MET Norway asks callers to identify themselves and to reuse answers instead of asking again.
-const HEADERS = { "user-agent": "AgentDataTools/1.0 (+https://agent-data-tools.revmesh2074.workers.dev)" };
+const HEADERS = { "user-agent": API_UA };
 const CACHE_SECONDS = 900;
 
 interface Step {
@@ -112,6 +113,8 @@ export async function weather(latInput?: string, lonInput?: string, hoursInput?:
     geometry: { coordinates: number[] };
     properties: { meta: { updated_at: string }; timeseries: Step[] };
   };
+  // 21 Nov 2026: an answer without the forecast section was our 500 (lib/source-json.ts).
+  sourceShape(body, "the weather data source", { "geometry.coordinates": "array", "properties.meta": "object", "properties.timeseries": "array" });
   const steps = body.properties.timeseries;
   if (!steps?.length) throw new HttpError(502, "the weather data source returned no forecast");
 

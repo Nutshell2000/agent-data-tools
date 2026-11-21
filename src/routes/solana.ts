@@ -4,6 +4,7 @@
 // rate limits are an uncharged 502.
 import { entry, need, num, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { sourceShape, textWithin, unreadableSource } from "../lib/source-json";
 
 const RPCS = ["https://api.mainnet-beta.solana.com", "https://solana-rpc.publicnode.com"];
 const TOKEN_PROGRAM = "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA";
@@ -45,7 +46,10 @@ export async function solRpc<T>(method: string, params: unknown[], methods: "all
       const res = await fetch(url, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }), signal: AbortSignal.timeout(7000) });
       if (!res.ok) { last = `HTTP ${res.status}`; continue; }
       // Lamport balances can exceed 2^53 (exchange wallets), so large integers are kept as strings before JSON.parse.
-      const body = JSON.parse((await res.text()).replace(/("value":)(\d{16,})/g, '$1"$2"')) as { result?: T; error?: { code: number; message: string } };
+      const body = JSON.parse((await textWithin(res)).replace(/("value":)(\d{16,})/g, '$1"$2"')) as { result?: T; error?: { code: number; message: string } };
+      // 21 Nov 2026: an answer that is not a JSON-RPC answer (no result, no error) was handed on as `undefined` and read
+      // by the caller: our 500, or "no such transaction" for a transaction that exists. It is this node failing.
+      if (typeof body !== "object" || body === null || (body.error === undefined && !Object.hasOwn(body, "result"))) { last = "unreadable answer"; continue; }
       if (body.error) {
         if (/invalid param|WrongSize|not a valid|could not find/i.test(body.error.message)) throw new HttpError(400, body.error.message.slice(0, 160));
         last = body.error.message; continue;
@@ -59,6 +63,7 @@ export async function solRpc<T>(method: string, params: unknown[], methods: "all
   throw new HttpError(502, `Solana's public nodes did not answer (${last.slice(0, 80)}); try again`);
 }
 
+const SOLANA_NODES = "Solana's public nodes";
 type ParsedAccount = { pubkey: string; account: { data: { parsed: { info: { mint: string; tokenAmount: { amount: string; decimals: number; uiAmountString: string } } } }; owner: string } };
 
 export const SOLANA: Entry[] = [
@@ -74,7 +79,10 @@ export const SOLANA: Entry[] = [
         solRpc<{ value: ParsedAccount[] }>("getTokenAccountsByOwner", [address, { programId: TOKEN_PROGRAM }, { encoding: "jsonParsed" }]).catch(() => null),
         solRpc<{ value: ParsedAccount[] }>("getTokenAccountsByOwner", [address, { programId: TOKEN_2022 }, { encoding: "jsonParsed" }]).catch(() => ({ value: [] as ParsedAccount[] })),
       ]);
-      const rows = classic === null ? null : [...classic.value.map((a) => ({ a, program: "token" })), ...t22.value.map((a) => ({ a, program: "token-2022" }))]
+      // 21 Nov 2026: a result without the balance was our 500.
+      sourceShape(bal, SOLANA_NODES, { value: "any", "context.slot": "number" });
+      if (!/^\d+$/.test(String(bal.value))) throw unreadableSource(SOLANA_NODES);
+      const rows = classic === null || !Array.isArray(classic.value) || !Array.isArray(t22?.value) ? null : [...classic.value.map((a) => ({ a, program: "token" })), ...t22.value.map((a) => ({ a, program: "token-2022" }))]
         .map(({ a, program }) => { const i = a.account.data.parsed.info; return { mint: i.mint, symbol: KNOWN_MINTS[i.mint] ?? null, decimals: i.tokenAmount.decimals, amount: i.tokenAmount.uiAmountString, raw: i.tokenAmount.amount, program }; })
         .filter((t) => t.raw !== "0")
         // Well-known tokens first (wallets collect spam airdrops with huge amounts), then by amount.
@@ -95,6 +103,7 @@ export const SOLANA: Entry[] = [
       const mint = pubkey(q("mint"), "mint");
       const holders = num(q, "holders", { min: 0, max: 20, fallback: 0, integer: true });
       const info = await solRpc<{ context: { slot: number }; value: null | { owner: string; data: { parsed?: { type: string; info: { decimals: number; supply: string; mintAuthority: string | null; freezeAuthority: string | null } } } } }>("getAccountInfo", [mint, { encoding: "jsonParsed" }], "basic");
+      sourceShape(info, SOLANA_NODES, { "context.slot": "number" }); // 21 Nov 2026: a null result was our 500
       if (!info.value) throw new HttpError(404, "no account at this address on Solana mainnet");
       const parsed = info.value.data.parsed;
       if (!parsed || parsed.type !== "mint") throw new HttpError(422, "this address is not an SPL token mint");

@@ -11,6 +11,8 @@
  */
 import { entry, num, opt, type Entry } from "../family";
 import { HttpError } from "../lib/env";
+import { API_UA } from "../lib/outbound-ua";
+import { SOURCE_MAX_BYTES_LARGE, jsonWithin } from "../lib/source-json";
 
 const SOURCE = "DefiLlama stablecoins (stablecoins.llama.fi)";
 const TTL_MS = 600_000;
@@ -25,7 +27,7 @@ async function llama<T>(url: string): Promise<T> {
   if (hit && Date.now() - hit.at < TTL_MS) return hit.data as T;
   let res: Response;
   try {
-    res = await fetch(url, { headers: { accept: "application/json", "user-agent": "AgentDataTools/1.0" }, signal: AbortSignal.timeout(15_000) });
+    res = await fetch(url, { headers: { accept: "application/json", "user-agent": API_UA }, signal: AbortSignal.timeout(15_000) });
   } catch {
     if (hit) return hit.data as T;
     throw new HttpError(502, "DefiLlama did not answer in time; try again");
@@ -34,7 +36,7 @@ async function llama<T>(url: string): Promise<T> {
     if (hit) return hit.data as T;
     throw new HttpError(502, `DefiLlama answered HTTP ${res.status}; try again`);
   }
-  const data = (await res.json().catch(() => null)) as T | null;
+  const data = (await jsonWithin(res, SOURCE_MAX_BYTES_LARGE).catch(() => null)) as T | null;
   if (!Array.isArray(data) || !data.length) throw new HttpError(502, "DefiLlama sent an unreadable answer");
   if (cache.size > 40) cache.clear();
   cache.set(url, { at: Date.now(), data });
