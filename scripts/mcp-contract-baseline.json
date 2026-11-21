@@ -1,5 +1,5 @@
 {
-  "version": "1.327.0",
+  "version": "1.328.0",
   "tools": [
     {
       "name": "extract",
@@ -17856,7 +17856,7 @@
     },
     {
       "name": "econ_national_debt",
-      "description": "US national debt from the Treasury's Debt to the Penny dataset: total public debt outstanding, debt held by the public and intragovernmental holdings (USD) at the latest record date, the change over 1 day, 30 days and 1 year, and a daily history (1-365 days). US federal data, public domain; the snapshot's record date is in the answer. Use when an agent needs the current US federal debt figure, its trend, or a daily series for a chart or brief. Example: days=30. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "US national debt from the Treasury's Debt to the Penny dataset: total public debt outstanding, debt held by the public and intragovernmental holdings (USD) at the latest record date, the change over 1 day, 30 days and 1 year, and a daily history (1-365 days). US federal data, public domain; the snapshot's record date is in the answer. Use when an agent needs the latest US federal debt record, its trend, or a daily series for a chart or brief. Example: days=30. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19224,7 +19224,7 @@
     },
     {
       "name": "web_extraction",
-      "description": "Web extraction from any public URL: fetch a page and return clean Markdown, plain text and metadata, with scripts and navigation stripped. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402. Example: urls=https://example.com,https://www.iana.org/help/example-domains. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Web extraction from one to five public URLs in one call: each page's clean text (or Markdown with format=markdown), title, author and published date where the page declares them, up to 20,000 characters a page (default 4,000). Static HTML, Markdown and plain text; no JavaScript rendering. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402. Example: urls=https://example.com,https://www.iana.org/help/example-domains. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19260,7 +19260,7 @@
     },
     {
       "name": "web_scraping",
-      "description": "Web scraping of any public URL: fetch a page and return clean Markdown, plain text and metadata, with scripts and navigation stripped. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402. Example: urls=https://example.com,https://www.iana.org/help/example-domains. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Web scraping of one to five public URLs in one call: each page's clean text (or Markdown with format=markdown), title, author and published date where the page declares them, up to 20,000 characters a page (default 4,000). Static HTML, Markdown and plain text; no JavaScript rendering and no crawling of links. Use when an agent needs the readable content of a web page for a summary, RAG index or research task. No account, pay per call over x402. Example: urls=https://example.com,https://www.iana.org/help/example-domains. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19368,7 +19368,7 @@
     },
     {
       "name": "dex_pools",
-      "description": "DEX pools: the trending token pairs on Base with liquidity and volume signals, from public on-chain data. Use to find active pools or tokens before a trade. Read-only, no API key, pay per call over x402. Example: blocks=1500. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "DEX pools on Base: the tokens with the most swaps in the last minutes (default 5, up to 10), counted live from Uniswap v2/v3, Aerodrome and Slipstream Swap events, each with its swap count, share of swaps, number of pools and busiest pool address. No liquidity, volume or price figures; for a pool's depth use uniswap_pool. Use to find active pools or tokens before a trade. Read-only, no API key, pay per call over x402. Example: blocks=1500. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19405,7 +19405,7 @@
     },
     {
       "name": "whale_alert",
-      "description": "Whale alert: the largest USDC and USDT transfers of the last minutes on Base, Ethereum, Arbitrum, Optimism and Polygon above a size you choose, with sender, receiver and amount. Use for flow monitoring or market-moving transfer alerts. Read-only, no API key. Example: chain=ethereum. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Whale alert: the largest USDC and USDT transfers of the last minutes on Ethereum, Base, Arbitrum, Optimism or Polygon (one network per call) above a size you choose, with sender, receiver, amount and transaction. Addresses are not labelled. Use for flow monitoring or market-moving transfer alerts. Read-only, no API key. Example: chain=ethereum. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19650,7 +19650,7 @@
     },
     {
       "name": "keyword_research",
-      "description": "Keyword research from a seed topic: returns related keyword ideas with search intent signals, grouped for SEO planning. Use when an agent needs a starting keyword set for content, a product page or an SEO brief. Read-only public data; no account, pay per call. Example: seed=crm software. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Keyword research from a seed keyword: the phrases people type, from Google, Bing, YouTube, Amazon and DuckDuckGo autocomplete, ranked by how many engines suggest each, with question and buying-intent phrases listed apart. No search volumes. Use when an agent needs a starting keyword set for content, a product page or an SEO brief. Read-only public data; no account, pay per call. Example: seed=crm software. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19949,7 +19949,7 @@
     },
     {
       "name": "domain_whois",
-      "description": "WHOIS and domain lookup in one call: registrar, registration and expiry dates with the domain's age (RDAP/WHOIS), DNS records (A, AAAA, CNAME, MX, NS, TXT, CAA), DNSSEC, and email authentication (SPF, DMARC). Use to check who owns a domain, how old it is, where it is hosted or whether it accepts mail, for lead research, trust and phishing checks. Example: name=cloudflare.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "WHOIS and domain lookup in one call: registrar, registration and expiry dates with the domain's age (RDAP/WHOIS), DNS records (A, AAAA, CNAME, MX, NS, TXT, CAA), DNSSEC, and email authentication (SPF, DMARC). Use to check a domain's registrar, how old it is, where it points or whether it accepts mail, for lead research, trust and phishing checks. The registrant (owner) is not returned. Example: name=cloudflare.com. Price $0.01/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -19998,7 +19998,7 @@
     },
     {
       "name": "geocode_address",
-      "description": "Geocode a place or address to latitude and longitude: a city, town, landmark or address name becomes coordinates, with country, region, population and elevation where known, best match first (Wikidata, CC0). Use to turn a place name into coordinates for maps, distance, weather or routing. Example: name=Lisbon. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Geocode a place name to latitude and longitude: a city, town, landmark or other place recorded in Wikidata becomes coordinates, with country, region, population and elevation where known, best match first (Wikidata, CC0). Street addresses and postcodes are not resolved. Use to turn a place name into coordinates for maps, distance, weather or routing. Example: name=Lisbon. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -21341,7 +21341,7 @@
     },
     {
       "name": "market_ohlcv",
-      "description": "Crypto OHLCV candles for any coin (BTC, ETH, SOL, HYPE…): open, high, low, close and volume per bar from Hyperliquid perpetuals, on intervals from 1 minute to 1 week, up to 500 bars, newest last. Without a coin the answer is for BTC. Use to chart a price, compute indicators, backtest a rule or give a trading agent recent price history. Example: coin=BTC. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Crypto OHLCV candles for any coin with a Hyperliquid perpetual (BTC, ETH, SOL, HYPE…): open, high, low, close and volume per bar from Hyperliquid perpetuals, on intervals from 1 minute to 1 week, up to 500 bars, newest last. Without a coin the answer is for BTC. Use to chart a price, compute indicators, backtest a rule or give a trading agent recent price history. Example: coin=BTC. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -21451,7 +21451,7 @@
     },
     {
       "name": "perpetual_funding_rates",
-      "description": "Live perpetual futures funding rates for Hyperliquid perps (BTC, ETH, SOL, HYPE and others): hourly rate, 8h-equivalent APR, premium, mark and oracle price, open interest and 24h volume. Without a coin, the 20 most traded markets. Use when an agent needs current perp funding rates for a derivatives brief, basis or carry check, or a risk dashboard. Hyperliquid data only. Not investment advice. Example: coin=BTC. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Live perpetual futures funding rates for Hyperliquid perps (BTC, ETH, SOL, HYPE and others): hourly rate and its APR, premium, mark and oracle price, open interest and 24h volume. Without a coin, the 20 most traded markets. Use when an agent needs current perp funding rates for a derivatives brief, basis or carry check, or a risk dashboard. Hyperliquid data only. Not investment advice. Example: coin=BTC. Price $0.002/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -21590,7 +21590,7 @@
           },
           "freshness": {
             "type": "string",
-            "description": "Only articles from the past day, week or month (default: any age)"
+            "description": "Only articles from the past day, week or month (default: day)"
           }
         }
       },
@@ -21737,7 +21737,7 @@
     },
     {
       "name": "contract_audit",
-      "description": "Contract audit for Solidity and Vyper: give a verified contract address (Ethereum, Base, Arbitrum, Optimism, Polygon) or paste the source, and one call returns security findings by severity with function, line, exploit scenario and fix, who holds the owner and upgrade keys on chain, a score and a Markdown report, in about a minute. Automated review, not a manual audit. Use before deploying, integrating with or buying into a contract. Price $1.00/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Contract audit for Solidity and Vyper: give a verified contract address (Ethereum, Base, Arbitrum, Optimism, Polygon) or paste the source, and one call returns security findings by severity with function, line, exploit scenario and fix, who holds the owner and upgrade keys on chain, a score and a Markdown report, within a minute or two. Automated review, not a manual audit. Use before deploying, integrating with or buying into a contract. Price $1.00/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -21794,7 +21794,7 @@
     },
     {
       "name": "merchant_trust",
-      "description": "Merchant trust score for a shop or seller domain: a high, medium or low trust verdict with named flags (days-old registration, expiring domain, missing or weak SPF and DMARC, too few nameservers, no web host, non-resolving domain) and the facts behind it (registrar, age, nameservers, DNSSEC, mail setup). Use before an agent buys from, pays or sends data to an online merchant. Signals only, not a guarantee. Example: name=cloudflare.com. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Merchant domain trust check for a shop or seller domain: a high, medium or low trust verdict with named flags (days-old registration, expiring domain, missing or weak SPF and DMARC, too few nameservers, no web host, non-resolving domain) and the facts behind it (registrar, age, nameservers, DNSSEC, mail). Domain signals only: no reviews or sales history. Use before an agent buys from, pays or sends data to an online merchant. Not a guarantee. Example: name=cloudflare.com. Price $0.02/call via x402 USDC or a card key (/credits), first 25 free; failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
@@ -22347,7 +22347,7 @@
     },
     {
       "name": "exa_search",
-      "description": "Exa-compatible web search API: send the Exa-style request (query, numResults, category, includeDomains, excludeDomains, startPublishedDate, contents.text and contents.highlights) and get results with title, URL, snippet, published date and optional page text and highlights. Use for an Exa search, a neural web search or a drop-in Exa-compatible search endpoint. No account or API key; failed calls are never charged. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
+      "description": "Exa-compatible web search API: send the Exa-style request (query, numResults, category, includeDomains, excludeDomains, startPublishedDate, contents.text and contents.highlights) and get results with title, URL, snippet, published date and optional page text and highlights. Results come from the Brave index, keyword-ranked. Use for an Exa-style search request or a drop-in Exa-compatible endpoint. No API key; failed calls are never charged. Example: q=x402 payment protocol. Price $0.01/call via x402 USDC or a card key (/credits); failed calls free. Reads or computes only and changes nothing; each call is charged, so repeats are not free.",
       "annotations": {
         "readOnlyHint": true,
         "destructiveHint": false,
