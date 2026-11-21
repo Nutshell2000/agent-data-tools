@@ -1,5 +1,5 @@
-// Daily market brief (pack, 16 Nov 2026). Measured 16 Nov: the daily buyer 0x0fcb…a8 (a scheduled agent that pays 25 sellers
-// between 07:00 and 08:10 UTC) buys a token price, a stock history, keyword research, a USDC yield and prediction-market odds
+// Daily market brief (pack, 16 Nov 2026). Measured 16 Nov: a scheduled agent on the open market
+// buys a token price, a stock history, keyword research, a USDC yield and prediction-market odds
 // from separate sellers at $0.01-0.10 each. One call here runs our own tools for the same jobs and returns one report. Every
 // section runs the same code as the single tool; a section that fails is reported in `failed` and the rest still answer.
 import { entry, num, opt, type Entry, type Input } from "../family";

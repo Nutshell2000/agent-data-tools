@@ -994,7 +994,7 @@ export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
   "/github/user", // 11 Nov 2026: with the other GitHub lookups
   // 11 Nov 2026, owner ("Cut them", to "Cut the three new $0.01 time and CVE listings to $0.002 like their leaders?"): the
   // Bazaar leaders for these searches charge $0.001-0.009 and vAPI sorts by price. /cve/lookup follows /cve, the tool it
-  // runs. /time itself stays at $0.01: only its two doors were put to her.
+  // runs. /time itself stays at $0.01: only its two doors were approved.
   "/cve", "/cve/lookup", "/timezone/convert", "/time/now",
   "/eth/gas", "/arb/gas", "/op/gas", "/polygon/gas", "/pack/gas-tracker", "/base/estimate-gas",
   "/base/block", "/eth/block", "/arb/block", "/op/block", "/polygon/block",
@@ -1002,7 +1002,7 @@ export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
   "/weather", "/fx", "/fx/all", "/geocode", "/ip/lookup", "/dns/lookup", "/wikipedia", "/sec/filings",
   "/hash", "/hmac", "/uuid", "/mime", "/regex/test", "/pack/hash-toolbox", "/pack/id-toolbox",
   // 10 Nov 2026: GitHub repository lookups enter at the acquisition price: every seller the measured buyers of this task
-  // pay charges $0.002 (owner approved the tool that day; the price follows her 6 Nov acquisition decision, review 20 Nov).
+  // pay charges $0.002 (approved that day; the price follows the 6 Nov acquisition decision, review 20 Nov).
   "/github/repo", "/github/search", "/github/releases",
   // Entry paths (7 Nov 2026, src/routes/entry-paths.ts) share their canonical tool's live price.
   "/weather/forecast", "/fx/rates", "/geocode/address", "/token/price", "/crypto/fear-and-greed", "/wallet/balance",
@@ -1018,10 +1018,10 @@ export const ACQUISITION_PATHS: ReadonlySet<string> = new Set([
 /**
  * Finder price test (12 Nov 2026, the owner: "Yes, test those two"). The x402 Service Finder scores
  * 0.30 relevance + 0.30 payers + 0.25 uptime + 0.15 price (price part = cheapest candidate / own price; fitted to its
- * paid answers with a median error of 0.0003, business/agentic/base-bots/finder-price-sim.mjs). At $0.001 these two
+ * paid answers with a median error of 0.0003). At $0.001 these two
  * become its #1 pick for "can a crawler access this url robots.txt" and "commodity prices" (#3 at $0.01). Neither is a
  * tool Mercator buys. At $0.001 a sale nets nothing once CDP's 1,000 free settlements a month are used: the test is for
- * rank and payers, not income. Review on 26 Nov against the finder's picks and payers (buyer-today.mjs 0x4c29…).
+ * rank and payers, not income. Review on 26 Nov against the finder's picks and payers.
  */
 export const FINDER_TEST_PRICE = "$0.001";
 export const FINDER_TEST_PATHS: ReadonlySet<string> = new Set(["/robots", "/commodity/price"]);

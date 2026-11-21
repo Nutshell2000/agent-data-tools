@@ -30,7 +30,7 @@ The OFAC mirror release `ofac-latest` is already published (SDN.CSV, ALT.CSV, of
      it costs $0.01 and is a test purchase, not listing seeding. Skip it if unsure.
 7. Tag `v1.23.0` and push the tag (publishes server.json to the MCP Registry).
 8. Only when step 6 shows 167/167: re-register the origin on x402scan (a failing probe deprecates that resource).
-9. Record the baseline in `docs/sales-baseline.md`: `/revenue`, `/metrics`, `/status` and the funnel counts, dated.
+9. Record the baseline in the operator's private notes: `/revenue`, `/metrics`, `/status` and the funnel counts, dated.
 
 `ORIGIN=https://agent-data-tools.revmesh2074.workers.dev`
 

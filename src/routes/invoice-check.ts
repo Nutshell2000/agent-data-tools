@@ -1,7 +1,7 @@
 /**
  * One-call EU invoice check (14 Nov 2026, release 1.180.0).
  *
- * Why: the tool-sales research of 14 Nov 2026 (`C:\MoneyWallet\business\research-2026-11-14-win\`) found no seller of the
+ * Why: the tool-sales research of 14 Nov 2026 found no seller of the
  * combined job that accounts-payable automations bring a document tool: read the invoice, then check the supplier's VAT
  * number in VIES, the IBAN, the sums and the dates, and say whether to pay or look closer. Sellers price parts of it
  * per document (Mindee ~$0.05 a page, Veryfi $0.16, an Apify e-invoice parser $50 per 1,000) and the Apify invoice

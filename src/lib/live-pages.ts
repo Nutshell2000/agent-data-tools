@@ -1,7 +1,7 @@
 /**
  * Live answers on tool pages (10 Nov 2026).
  *
- * Why: the owner's goal needs customers of our own, and under her rules they can only arrive by search. Search Console that
+ * Why: the service needs customers of its own, and they can only arrive by search. Search Console that
  * day: 0 clicks in 28 days; the queries that did show our pages were people asking for a value right now ("base gas
  * price", "avax gas fee", "501 redirect"), and a tool page answered them with a static example from October. For tools
  * whose published example is a question with a current answer, the page now shows the real answer, read at most 15

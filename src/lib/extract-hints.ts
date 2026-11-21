@@ -1,6 +1,6 @@
 // What the field names people ask for on invoices and receipts mean, and how a document's text misleads a model.
-// Measured 14 Nov 2026 on invoice2data's test set (11 invoices, 57 checked fields; the harness is
-// C:\MoneyWallet\business\integrations\bench-invoices): the bare prompt on Llama 4 Scout got 43 right, these rules on
+// Measured 14 Nov 2026 on invoice2data's test set (11 invoices, 57 checked fields; the harness is kept
+// outside this repository): the bare prompt on Llama 4 Scout got 43 right, these rules on
 // gpt-oss-120b 52. The misses they fix: the customer number returned as the invoice number, a total left null,
 // a row's position number returned as its quantity, dates and amounts in the document's own spelling.
 
