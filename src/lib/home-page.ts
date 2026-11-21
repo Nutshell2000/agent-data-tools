@@ -233,7 +233,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
   const prow: [ico: string, label: string, href: string][] = [
     ["speaker", "Text to speech", "#try"],
     ["text", "Speech to text", `${VOICE_SITE}/transcribe`],
-    ["captions", "Subtitles", `${VOICE_SITE}/transcribe`],
+    ["captions", "Subtitles", `${VOICE_SITE}/srt-generator`],
     ["book", "Audiobooks", `${STUDIO_SITE}/audiobook`],
     ["podcast", "Podcasts", `${STUDIO_SITE}/dialogue`],
     ["phone", "App", "/app"],
@@ -258,7 +258,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
   const fair: [ico: string, title: string, line: string][] = [
     ["user", "No account for the free tools", "Type, play, download. No e-mail, no sign-up form, no trial that ends."],
     ["redo", "Retries and previews are free", "Audition every voice and redo any sentence as often as you like. Nothing is counted on this page."],
-    ["download", "Downloads are not locked", "MP3, WAV and subtitle files from the free tools are yours to keep."],
+    ["download", "No CAPTCHA, no watermark", "MP3, WAV and subtitle files from the free tools download clean, with nothing to solve first."],
     ["coin", "A failed job costs nothing", "On paid plans and the API, only work that succeeds uses credits. Errors and bad input are free."],
     ["clock", "Packs never expire", "A one-off pack keeps its credits until you use them. No subscription needed."],
     ["exit", "Cancel in one click", "Stop a plan any time from the plan portal with the e-mail you paid with. Unused credits stay on your key."],
