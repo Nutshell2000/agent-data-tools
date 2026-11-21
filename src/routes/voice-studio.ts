@@ -10,6 +10,7 @@
 import { Buffer } from "node:buffer";
 import { entry, type Entry, type Input } from "../family";
 import { HttpError, type Env } from "../lib/env";
+import { languageCode } from "../lib/melo";
 import { toSubtitles } from "./ai";
 import { SPEECH_VOICES, base64Bytes, joinMp3, speakOnce, speechParts, speechVoice } from "./ai-text";
 import { mp3Frames } from "./voice";
@@ -132,7 +133,7 @@ export const VOICE_STUDIO: Entry[] = [
     },
     { contentType: "audio/mpeg", audioBase64: "SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjYwLjMuMTAwAAAA…", audioBytes: 98304, durationSeconds: 4.6, lang: "en", speakers: { Anna: "luna", Ben: "orion" }, lines: [{ speaker: "Anna", voice: "luna", start: 0, end: 1.9, text: "Welcome back to the show!" }, { speaker: "Ben", voice: "orion", start: 1.9, end: 4.6, text: "Thanks, it is great to be here." }], characters: 56, captionFormat: "srt", captions: "1\n00:00:00,000 --> 00:00:01,900\nAnna: Welcome back to the show!\n\n2\n00:00:01,900 --> 00:00:04,600\nBen: Thanks, it is great to be here.\n", model: "@cf/deepgram/aura-2-en" },
     async (env: Env, q: Input) => {
-      const lang = (q("lang") ?? "en").trim().toLowerCase() || "en";
+      const lang = languageCode(q("lang")) || "en";
       if (lang !== "en" && lang !== "es") throw new HttpError(400, "lang must be en or es");
       const format = (q("captions") ?? "srt").trim().toLowerCase() || "srt";
       if (format !== "srt" && format !== "vtt") throw new HttpError(400, "captions must be srt or vtt");

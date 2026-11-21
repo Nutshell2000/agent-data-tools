@@ -7,6 +7,7 @@ import { callerFamily } from "./caller";
 import { FAILURE_PREFIX, failureReason, refusalReason } from "./failure-reason";
 import { TARGET_UNAVAILABLE } from "./fetch";
 import { orthogonalSecret } from "./marketplace";
+import { alignAccepted, differsNote } from "./accepted-terms";
 
 export function requestMetricsMiddleware(
   paidPaths: ReadonlySet<string>,
@@ -54,7 +55,9 @@ export function requestMetricsMiddleware(
     }
     // Why a buyer's payment was refused: until 1.84.2 this reached only wrangler tail, so lost buyers could not be explained.
     if (outcome === "v2_payment" || outcome === "v1_payment" || outcome === "mpp_payment") {
-      const reason = outcome === "v2_payment" ? decodedChallengeError(c.res.headers.get("payment-required")) : body?.error;
+      let reason = outcome === "v2_payment" ? decodedChallengeError(c.res.headers.get("payment-required")) : body?.error;
+      // Which fields of the buyer's `accepted` differ from our terms (names only), so /status explains the refusal.
+      if (reason === "No matching payment requirements") reason += differsNote(alignAccepted(c.req.header("payment-signature"), c.res.headers.get("payment-required")));
       queueMetricBump(metrics, (promise) => c.executionCtx.waitUntil(promise), `${FAILURE_PREFIX}${c.req.path} ${refusalReason(reason)}`, outcome);
     }
   };

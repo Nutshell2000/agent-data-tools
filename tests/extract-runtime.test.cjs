@@ -10,6 +10,7 @@ before(async () => {
     if(path==='/redirect') return new Response(null,{status:302,headers:{location:'/article'}});
     if(path==='/private') return new Response(null,{status:302,headers:{location:'http://127.0.0.1/private'}});
     if(path==='/pdf') return new Response('%PDF',{headers:{'content-type':'application/pdf'}});
+    if(path==='/image') return new Response(new Uint8Array([0x89,0x50,0x4e,0x47]),{headers:{'content-type':'image/png'}});
     if(path==='/fail') return new Response('upstream error',{status:500});
     if(path==='/big') return new Response('a'.repeat(2*1024*1024+100),{headers:{'content-type':'text/plain'}});
     if(path==='/plain') return new Response('a'.repeat(600),{headers:{'content-type':'text/plain'}});
@@ -28,7 +29,8 @@ test('real Workers runtime extracts a static article, metadata, headings and abs
 });
 test('extraction reports final URL and rejects private redirects, unsupported files and upstream failures',async()=>{
   assert.equal((await (await call('/redirect')).json()).finalUrl,'https://public.example/article');
-  for(const [path,status] of [['/private',400],['/pdf',415],['/fail',502]]) {const r=await call(path);assert.equal(r.status,status);await r.body?.cancel();}
+  // 1.325.0: a PDF link is read through the PDF reader, so a broken PDF is a 422 of that reader; an image is still a 415.
+  for(const [path,status] of [['/private',400],['/pdf',422],['/image',415],['/fail',502]]) {const r=await call(path);assert.equal(r.status,status);await r.body?.cancel();}
 });
 test('text output and oversized input expose truncation and JavaScript shells are not rendered',async()=>{
   const plain=await (await call('/plain',500)).json();assert.equal(plain.text.length,500);assert.equal(plain.textLength,600);assert.equal(plain.truncated,true);

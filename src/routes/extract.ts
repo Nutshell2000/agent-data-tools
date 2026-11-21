@@ -40,7 +40,13 @@ export interface ExtractRunOptions {
   archiveFallback?: boolean;
 }
 
-const PAGE_ACCEPT = "text/html,application/xhtml+xml;q=0.9,text/markdown;q=0.9,text/plain;q=0.8";
+/** Text formats read as they are when a URL is not a page: JSON, XML, CSV, YAML, feeds and any other text/* type. */
+const OTHER_TEXT = /^(?:text\/[a-z0-9.+-]+|application\/(?:json|xml|csv|yaml|x-yaml|x-ndjson|javascript|[a-z0-9.-]+\+(?:json|xml)))(?:;|$)/i;
+/** A PDF met by a page reader: at most this size and this many pages; /pdf/text reads larger files and page ranges. */
+const PDF_MAX_BYTES = 10 * 1024 * 1024;
+const PDF_PAGES = 5;
+
+const PAGE_ACCEPT ="text/html,application/xhtml+xml;q=0.9,text/markdown;q=0.9,text/plain;q=0.8";
 
 export async function extract(
   rawUrl: string | undefined,
@@ -86,15 +92,17 @@ async function readResponse(res: Response, target: URL, maxChars: number, format
   const finalUrl = baseUrl ?? (res.url || target.href);
   const markdownPath = plain && /\.(?:md|markdown)$/i.test(new URL(finalUrl).pathname);
   const markdownSource = markdownMime || markdownPath;
-  if (!html && !plain && !markdownMime) {
+  // 21 Nov 2026: a caller's URL is often not an HTML page. In seven days /status counted 9 refusals on the page readers
+  // for JSON and PDF links ("unsupported content type: application/json", "this URL is a PDF file"), each from a caller
+  // ready to pay, and the hint to another tool was not followed. Both are now read here: a PDF through the PDF reader
+  // (its first pages), other text formats as the text they are. Images, audio and other binary files are still refused.
+  const pdf = /^application\/(x-)?pdf(?:;|$)/i.test(contentType) || (!html && !plain && !markdownMime && /\.pdf$/i.test(new URL(finalUrl).pathname));
+  const otherText = !html && !plain && !markdownMime && !pdf && OTHER_TEXT.test(contentType);
+  if (!html && !plain && !markdownMime && !pdf && !otherText) {
     await res.body?.cancel();
-    // A PDF link is the most common wrong file here (/status, 14 Nov 2026: 2 of 3 content-type refusals): name the tool
-    // that reads it, with the same URL, so the caller's next paid call succeeds instead of the job ending here.
-    if (/^application\/(x-)?pdf(?:;|$)/i.test(contentType) || /\.pdf$/i.test(new URL(finalUrl).pathname))
-      throw new HttpError(415, `this URL is a PDF file, not a web page; read it with /pdf/text?url=${encodeURIComponent(target.href)} (nothing was charged)`, "EXTRACTION_PDF");
     throw new HttpError(
       415,
-      `unsupported content type: ${contentType || "unknown"}`,
+      `unsupported content type: ${contentType || "unknown"}; this tool reads web pages, PDF files and text formats (nothing was charged)`,
     );
   }
   if (!html && sectionParam !== undefined && !isFormerExample(sectionParam)) {
@@ -102,6 +110,18 @@ async function readResponse(res: Response, target: URL, maxChars: number, format
     throw new HttpError(415, "section selection requires static HTML", "EXTRACTION_SECTION_UNSUPPORTED");
   }
   if (!html) sectionParam = undefined;
+  if (pdf) {
+    let tooLarge = false;
+    const file = new Uint8Array(await new Response(capBytes(res.body!, PDF_MAX_BYTES, () => { tooLarge = true; })).arrayBuffer());
+    if (tooLarge) throw new HttpError(422, `this PDF is larger than ${PDF_MAX_BYTES / 1024 / 1024} MB; read it with /pdf/text?url=${encodeURIComponent(target.href)}, which takes page ranges (nothing was charged)`, "EXTRACTION_PDF");
+    const { readPdf } = await import("./pdf");
+    const read = await readPdf(file, 1, PDF_PAGES, maxChars) as { totalPages?: number; pages?: { text: string }[] };
+    const source = (read.pages ?? []).map((p) => p.text).join("\n\n");
+    if (!source.trim()) throw new HttpError(422, `this PDF has no text layer in its first ${PDF_PAGES} pages (a scan); read it with /document/text?url=${encodeURIComponent(target.href)} (nothing was charged)`, "EXTRACTION_EMPTY");
+    const result = await buildExtraction({ target, finalUrl, status: res.status, contentType, source, html: false, markdownSource: false, markdownPath: false, inputTruncated: (read.totalPages ?? 0) > PDF_PAGES, maxChars, formatParam, sectionParam: undefined });
+    result.warnings.push("pdf_source", ...((read.totalPages ?? 0) > PDF_PAGES ? [`pdf_first_${PDF_PAGES}_pages_of_${read.totalPages}`] : []));
+    return result;
+  }
   let inputTruncated = false;
   const bytes = await new Response(
     capBytes(res.body!, 2 * 1024 * 1024, () => {
@@ -118,7 +138,9 @@ async function readResponse(res: Response, target: URL, maxChars: number, format
   }
   const source = decoder.decode(bytes);
   try {
-    return await buildExtraction({ target, finalUrl, status: res.status, contentType, source, html, markdownSource, markdownPath, inputTruncated, maxChars, formatParam, sectionParam });
+    const result = await buildExtraction({ target, finalUrl, status: res.status, contentType, source, html, markdownSource, markdownPath, inputTruncated, maxChars, formatParam, sectionParam });
+    if (otherText) result.warnings.push("non_html_source");
+    return result;
   } catch (e) {
     // An empty static HTML page is usually built by JavaScript: point to the rendered route.
     if (html && e instanceof HttpError && e.code === "EXTRACTION_EMPTY" && !e.message.includes("maxChars"))

@@ -141,18 +141,33 @@ export async function payV1(c: C, endpoint: Endpoint, header: string, next: Next
   markStage("verified");
   // Claim the nonce before running the tool: verify does not reject a reused authorization, so without this a replay
   // runs the tool a second time and only fails at settle, giving a free extra result. MPP paths already claim here.
+  let releaseClaim: (() => Promise<void>) | undefined;
   if (auth.nonce && c.env.METRICS) {
     const expires = Math.min(Number(auth.validBefore) * 1000, Date.now() + 600_000);
     const claimKey = `x402v1:${network}:${auth.nonce.toLowerCase()}`;
-    const claimed = await c.env.METRICS.get(c.env.METRICS.idFromName("global")).mppClaim(claimKey, expires).catch(() => null);
+    const ledger = c.env.METRICS.get(c.env.METRICS.idFromName("global"));
+    const claimed = await ledger.mppClaim(claimKey, expires).catch(() => null);
     if (claimed === null) return c.json(v1Body(accepts, "payment verification is temporarily unavailable; you were not charged"), 503);
     if (!claimed) {
       markStage("verification_failed");
-      return c.json(v1Body(accepts, "invalid_payment", "payment invalid: this authorization was already used; request a new payment"));
+      // 402, as every other refused payment (21 Nov 2026): this answered HTTP 200 with an error body, which a client
+      // reads as the tool's answer.
+      return c.json(v1Body(accepts, "invalid_payment", "payment invalid: this authorization was already used; request a new payment"), 402);
     }
+    releaseClaim = () => ledger.mppDelete(claimKey).catch((e: unknown) => { console.error("x402 v1: releasing the claim failed", e); });
   }
-  await next();
-  if (c.res.status >= 400) return; // failed calls are never settled, so never charged
+  try {
+    await next();
+  } catch (e) {
+    await releaseClaim?.();
+    throw e;
+  }
+  if (c.res.status >= 400) {
+    // A failed call is never settled, so never charged, and nothing was delivered: the same authorization may be sent
+    // again. Before 21 Nov 2026 the claim stayed for up to ten minutes and the buyer's retry was refused as "already used".
+    await releaseClaim?.();
+    return;
+  }
   let settled;
   try { settled = await fac.settle(payment, requirements); } catch (e) { console.error("x402 v1 settle failed", e); settled = { success: false, errorReason: String((e as Error)?.message ?? "settlement unavailable").slice(0, 200) }; }
   if (!settled.success || !settled.transaction) {

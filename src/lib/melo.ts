@@ -28,16 +28,26 @@ export const SPEECH_LANGS = ["en", "es"] as const;
 export type SpeechLang = (typeof SPEECH_LANGS)[number];
 /** Languages MeloTTS served before Workers AI retired it (owner: "MeloTTS is retired by Cloudflare on 20 Nov 2026"). Callers must refuse a retired language with `retiredSpeechLang`, not treat it as Aura-2. */
 export const RETIRED_SPEECH_LANGS: ReadonlySet<string> = new Set(["fr", "zh", "ja", "ko"]);
-const LANG_NAMES: Readonly<Record<string, string>> = { english: "en", spanish: "es", "español": "es", french: "fr", "français": "fr", chinese: "zh", mandarin: "zh", "zh-cn": "zh", japanese: "ja", jp: "ja", korean: "ko", kr: "ko" };
+const LANG_NAMES: Readonly<Record<string, string>> = { eng: "en", spa: "es", fra: "fr", fre: "fr", zho: "zh", chi: "zh", jpn: "ja", kor: "ko", english: "en", spanish: "es", "español": "es", french: "fr", "français": "fr", chinese: "zh", mandarin: "zh", "zh-cn": "zh", japanese: "ja", jp: "ja", korean: "ko", kr: "ko" };
 /** A language code or English name as one of `SPEECH_LANGS`, else undefined. A name in `RETIRED_SPEECH_LANGS` is still undefined (so callers see a language that was never served), but `retiredSpeechLang` names it. */
-export function speechLangOf(raw: string | undefined): SpeechLang | undefined {
+/**
+ * A language as callers write it, as a two-letter code: a name ("English"), a three-letter code ("eng", "spa") or a
+ * regional tag ("en-US", "en_GB", "es-419", "es-MX"). 21 Nov 2026: /status counted 14 speech calls in seven days
+ * refused with "lang must be one of: en, es" against 9 that ran; SDKs and browsers send regional tags by default.
+ */
+export function languageCode(raw: string | undefined): string {
   const t = (raw ?? "").trim().toLowerCase();
-  const code = Object.hasOwn(LANG_NAMES, t) ? LANG_NAMES[t] : t;
+  if (Object.hasOwn(LANG_NAMES, t)) return LANG_NAMES[t];
+  const primary = /^([a-z]{2,3})[-_][a-z0-9]{2,8}(?:[-_][a-z0-9]{2,8})?$/.exec(t)?.[1] ?? t;
+  return Object.hasOwn(LANG_NAMES, primary) ? LANG_NAMES[primary] : primary;
+}
+export function speechLangOf(raw: string | undefined): SpeechLang | undefined {
+  const code = languageCode(raw);
   return (SPEECH_LANGS as readonly string[]).includes(code) ? (code as SpeechLang) : undefined;
 }
-/** The retired language a raw name or code stands for (normalized through LANG_NAMES), or undefined. */
+/** The retired language a raw name, code or regional tag stands for, or undefined. */
 export function retiredSpeechLang(raw: string | undefined): string | undefined {
-  const code = Object.hasOwn(LANG_NAMES, (raw ?? "").trim().toLowerCase()) ? LANG_NAMES[(raw ?? "").trim().toLowerCase()] : (raw ?? "").trim().toLowerCase();
+  const code = languageCode(raw);
   return RETIRED_SPEECH_LANGS.has(code) ? code : undefined;
 }
 
