@@ -105,10 +105,10 @@ export function offerLadder(prices: VoicePrices, opts: { brand?: string; browser
 <ul><li><b>${pack} hours</b> of transcription on our servers</li><li>${LIMITS_SENTENCE}</li><li>Subtitles as SRT or VTT, in <b>90+ languages</b></li><li>The hours never expire</li></ul>
 <a class="btn" href="${esc(VOICE_HOURS_PACK_URL)}" data-ev="pack_click">Get ${pack} hours for $1</a><p class="fine">Paid once by card. No account.</p></div>`;
   const pro = `<div class="tier hot"><span class="tag">For regulars</span><h3>Transcribe Pro</h3><p class="for">Long recordings every week, done for you on our servers.</p><div class="p">${price}<small> / month</small></div>
-<ul><li><b>About ${hours} hours</b> of transcription a month</li><li>Everything in One job</li><li>Works the same on a slow phone or laptop</li><li>Hours you don't use carry over. Cancel any time.</li></ul>
+<ul><li><b>About ${hours} hours</b> of transcription a month</li><li>Everything in One job</li><li>Works the same on a slow phone or laptop</li><li>Hours you don't use carry over to next month. Cancel any time.</li></ul>
 <a class="btn primary" href="${esc(VOICE_PRO_URL)}">Get Transcribe Pro: ${price} a month</a><p class="fine">No account.${opts.trial ? ` ${tryLink(prices, true)} first.` : ""}</p></div>`;
   return `<div class="ladder">${free}${once}${pro}</div>
-<p class="packs" style="justify-content:center">${more ? `<span>Hours of audio every day?</span><a href="${esc(more.url)}">$${more.usdCents / 100} a month for about ${hoursFor(more.credits, prices.long)} hours</a>` : ""}<a href="/credits">Building an app? API pricing</a></p>`;
+<p class="packs" style="justify-content:center">${more ? `<span>Hours of audio every day?</span><a href="${esc(more.url)}">$${more.usdCents / 100} a month: also includes developer access</a>` : ""}<a href="/credits">Building an app? API pricing</a></p>`;
 }
 
 /** How long a recording may be, said once and the same on every page (checked against the browser tool's code, 21 Nov 2026). */
