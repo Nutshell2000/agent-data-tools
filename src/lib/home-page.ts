@@ -106,7 +106,7 @@ function faqItems(brand: string, languages: string, browserVoices: number, apiVo
 // 21 Nov 2026 (front-page layout pass): on a phone the Play button sat under the sticky bar (y≈790 of 812) and the
 // developer block was 37% of the page. The hero is tighter on phones, the sample-script chips scroll in one row, the
 // keyboard hint is hidden on touch screens, and the long API catalogue folds into one panel (opened by a link into it).
-const HOME_LAYOUT_CSS = `.devmore{margin:26px 0 0;border:1px solid var(--line);border-radius:18px;background:rgba(255,255,255,.02)}
+const HOME_LAYOUT_CSS = `.devmore{margin:26px 0 0;border:1px solid var(--line);border-radius:18px;background:rgba(22,22,29,0.014)}
 .devmore>summary{cursor:pointer;padding:16px 20px;font-weight:700;color:var(--fg);list-style:none}
 .devmore>summary::-webkit-details-marker{display:none}.devmore>summary::after{content:" +";color:var(--c)}.devmore[open]>summary::after{content:" \\2212"}
 .devmore>:not(summary){padding:0 20px}.devmore>:last-child{padding-bottom:20px}
@@ -124,22 +124,24 @@ const HOME_LAYOUT_CSS = `.devmore{margin:26px 0 0;border:1px solid var(--line);b
 // - a "Fair by design" block: the billing and privacy complaints people have about voice tools, answered as promises
 //   the code keeps (free retries, failed calls cost nothing, packs never expire, cancel from the portal, no account).
 // Still: no rival named, no speed claim, no AI label, every number computed.
-const REDESIGN_CSS = `.annc{position:relative;z-index:21;background:linear-gradient(90deg,rgba(139,92,246,.22),rgba(34,211,238,.18));border-bottom:1px solid rgba(255,255,255,.07);font-size:.9rem;text-align:center;padding:8px 16px;color:var(--fg)}
-.annc a{color:var(--fg);font-weight:650}.annc .short{display:none}.annc b{color:#07070c;background:var(--grad);border-radius:999px;padding:1px 8px;margin-right:8px;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
-.hero{padding-top:40px}.hero h1{font-size:clamp(2rem,4.6vw,3.5rem);max-width:20ch;margin-bottom:10px}.hero .lede{margin-bottom:20px}.hero .pill{display:inline-flex;gap:8px;align-items:center;margin:0 0 18px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--muted);font-size:.9rem}.hero .pill i{width:8px;height:8px;border-radius:50%;background:var(--g);box-shadow:0 0 10px var(--g)}
+const REDESIGN_CSS = `.vc{--vc-card:#ffffff;--vc-card2:#f7f6f3;--vc-line:#e7e3dc;--vc-fg:#16161d;--vc-muted:#55555f;--vc-accent:#0f766e;--vc-btn:#16161d;--vc-btn-fg:#ffffff;--vc-ok:#0f8a5f;--vc-err:#b42318}
+.hero .vc{box-shadow:0 30px 70px -30px rgba(22,22,29,.22),0 0 0 1px rgba(22,22,29,.03)}
+.annc{position:relative;z-index:21;background:linear-gradient(90deg,rgba(79,70,229,0.099),rgba(15,118,110,0.099));border-bottom:1px solid rgba(22,22,29,0.049);font-size:.9rem;text-align:center;padding:8px 16px;color:var(--fg)}
+.annc a{color:var(--fg);font-weight:650}.annc .short{display:none}.annc b{color:#ffffff;background:var(--grad);border-radius:999px;padding:1px 8px;margin-right:8px;font-size:.75rem;letter-spacing:.06em;text-transform:uppercase}
+.hero{padding-top:40px}.hero h1{font-size:clamp(2rem,4.6vw,3.5rem);max-width:20ch;margin-bottom:10px}.hero .lede{margin-bottom:20px}.hero .pill{display:inline-flex;gap:8px;align-items:center;margin:0 0 18px;padding:6px 14px;border-radius:999px;border:1px solid var(--line);background:rgba(22,22,29,0.028);color:var(--muted);font-size:.9rem}.hero .pill i{width:8px;height:8px;border-radius:50%;background:var(--g);box-shadow:0 0 10px var(--g)}
 .prow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:0 auto 14px;max-width:900px}
-.prow a{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--muted);font-size:.93rem;font-weight:600}.prow a .ico{width:17px;height:17px}
-.prow a:hover,.prow a[aria-current]{color:var(--fg);border-color:#4a4a70;background:rgba(255,255,255,.08);text-decoration:none}.prow a[aria-current]{border-color:var(--c)}
-.promise{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 10px;margin:16px 0 0;padding:0;list-style:none}.promise li{display:flex;align-items:center;gap:7px;font-size:.9rem;color:var(--muted);padding:6px 12px;border-radius:999px;background:rgba(52,211,153,.07);border:1px solid rgba(52,211,153,.22)}.promise .ico{width:16px;height:16px;color:var(--g)}
+.prow a{display:inline-flex;align-items:center;gap:7px;padding:8px 15px;border-radius:999px;border:1px solid var(--line);background:rgba(22,22,29,0.021);color:var(--muted);font-size:.93rem;font-weight:600}.prow a .ico{width:17px;height:17px}
+.prow a:hover,.prow a[aria-current]{color:var(--fg);border-color:#cfc9bf;background:rgba(22,22,29,0.056);text-decoration:none}.prow a[aria-current]{border-color:var(--c)}
+.promise{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 10px;margin:16px 0 0;padding:0;list-style:none}.promise li{display:flex;align-items:center;gap:7px;font-size:.9rem;color:var(--muted);padding:6px 12px;border-radius:999px;background:rgba(15,138,95,0.07);border:1px solid rgba(15,138,95,0.22)}.promise .ico{width:16px;height:16px;color:var(--g)}
 .tour{display:grid;gap:18px;margin-top:8px;text-align:left}
-.trow{display:grid;grid-template-columns:1fr 1.1fr;gap:28px;align-items:center;padding:28px;border-radius:26px;border:1px solid var(--line);background:radial-gradient(520px 220px at 0 0,rgba(139,92,246,.10),transparent 65%),var(--card)}
-.trow:nth-child(even){background:radial-gradient(520px 220px at 100% 0,rgba(34,211,238,.09),transparent 65%),var(--card)}.trow:nth-child(even) .tcopy{order:2}
-.tcopy h3{font-size:clamp(1.4rem,2.6vw,1.9rem);line-height:1.12;letter-spacing:-.02em;margin:6px 0 10px}.tcopy p{color:var(--muted);margin:0 0 18px}.tcopy .free{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--g);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.3);padding:3px 9px;border-radius:999px;margin-left:8px}
-.mock{border-radius:18px;border:1px solid var(--line);background:linear-gradient(180deg,#141422,#0c0c15);padding:18px;font-size:.9rem;color:var(--muted);min-height:190px}
-.mock .row{display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:12px;background:rgba(255,255,255,.03);margin:0 0 8px}.mock .row.on{background:rgba(34,211,238,.10);border:1px solid rgba(34,211,238,.35);color:var(--fg)}
-.mock .t{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--c);font-size:.8rem;flex:none}.mock .tag{margin-left:auto;font-size:.75rem;font-weight:700;color:#07070c;background:var(--grad);border-radius:999px;padding:2px 9px;flex:none}
-.mock .bar{height:6px;border-radius:6px;background:#25253a;overflow:hidden;flex:1}.mock .bar i{display:block;height:100%;background:var(--grad)}
-.mock .bub{max-width:82%;padding:9px 13px;border-radius:14px;margin:0 0 8px;background:rgba(139,92,246,.14);color:var(--fg)}.mock .bub.b{margin-left:auto;background:rgba(34,211,238,.12)}.mock .bub small{display:block;color:var(--c);font-weight:700;font-size:.74rem}
+.trow{display:grid;grid-template-columns:1fr 1.1fr;gap:28px;align-items:center;padding:28px;border-radius:26px;border:1px solid var(--line);background:radial-gradient(520px 220px at 0 0,rgba(79,70,229,0.045),transparent 65%),var(--card)}
+.trow:nth-child(even){background:radial-gradient(520px 220px at 100% 0,rgba(15,118,110,0.050),transparent 65%),var(--card)}.trow:nth-child(even) .tcopy{order:2}
+.tcopy h3{font-size:clamp(1.4rem,2.6vw,1.9rem);line-height:1.12;letter-spacing:-.02em;margin:6px 0 10px}.tcopy p{color:var(--muted);margin:0 0 18px}.tcopy .free{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--g);background:rgba(15,138,95,0.1);border:1px solid rgba(15,138,95,0.3);padding:3px 9px;border-radius:999px;margin-left:8px}
+.mock{border-radius:18px;border:1px solid var(--line);background:linear-gradient(180deg,#faf9f6,#f4f2ee);padding:18px;font-size:.9rem;color:var(--muted);min-height:190px}
+.mock .row{display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:12px;background:rgba(22,22,29,0.021);margin:0 0 8px}.mock .row.on{background:rgba(15,118,110,0.055);border:1px solid rgba(15,118,110,0.193);color:var(--fg)}
+.mock .t{font-family:ui-monospace,Menlo,Consolas,monospace;color:var(--c);font-size:.8rem;flex:none}.mock .tag{margin-left:auto;font-size:.75rem;font-weight:700;color:#ffffff;background:var(--grad);border-radius:999px;padding:2px 9px;flex:none}
+.mock .bar{height:6px;border-radius:6px;background:#e7e3dc;overflow:hidden;flex:1}.mock .bar i{display:block;height:100%;background:var(--grad)}
+.mock .bub{max-width:82%;padding:9px 13px;border-radius:14px;margin:0 0 8px;background:rgba(79,70,229,0.063);color:var(--fg)}.mock .bub.b{margin-left:auto;background:rgba(15,118,110,0.066)}.mock .bub small{display:block;color:var(--c);font-weight:700;font-size:.74rem}
 .mock .mwave{display:flex;gap:3px;align-items:center;height:44px;margin:4px 0 12px}.mock .mwave i{flex:1;border-radius:3px;background:var(--grad);opacity:.85}
 .fair{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;text-align:left;margin-top:8px}
 .fair div{padding:24px;border-radius:20px;border:1px solid var(--line);background:var(--card)}.fair b{display:flex;gap:10px;align-items:center;font-size:1.1rem;color:var(--fg);margin-bottom:6px}.fair b .ico{color:var(--g);width:22px;height:22px;flex:none}.fair span{color:var(--muted);font-size:.97rem}
@@ -273,7 +275,7 @@ ${offers.map((o, i) => `<tr><td><a href="${esc(o.url)}">${esc(o.label)}</a></td>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 <meta name="description" content="${esc(description)}">
-<meta name="theme-color" content="#07070c">
+<meta name="theme-color" content="#fbfaf7">
 <link rel="canonical" href="${esc(origin)}/">
 <meta property="og:type" content="website"><meta property="og:site_name" content="${esc(brand)}"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}">
 <meta property="og:url" content="${esc(origin)}/"><meta property="og:image" content="${esc(origin)}/og-glyphcall.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image">
